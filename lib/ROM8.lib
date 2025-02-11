@@ -1,0 +1,2 @@
+ ; ROM8 library file
+ROM_ST            = $2000 ; Start of 8K ROM

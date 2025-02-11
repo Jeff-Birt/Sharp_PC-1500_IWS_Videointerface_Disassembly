@@ -1,0 +1,3633 @@
+; IWS-Video_H16_V1.0.asm
+; IWS Video Interface
+;
+
+#define EOW(n8)        .BYTE n8 | $80    ; Sets bit 7 of character
+
+#INCLUDE    "lib/PC-1500.lib"
+;#INCLUDE    "lib/CE-158.lib"
+;#INCLUDE    "lib/CE-158N.lib"
+;#INCLUDE    "lib/CE-150.lib"
+#INCLUDE    "lib/PC-1500_Macros.lib"
+
+.ORG $8000
+
+;------------------------------------------------------------------------------------------------------------
+; BASIC Command Table 8000
+;------------------------------------------------------------------------------------------------------------
+;% B_TBL_8000 START
+B_TBL_8000:
+    .BYTE  $55                                          ; Marker that BASIC Table follows 
+
+B_TBL_8000_TNUM:
+    .BYTE  $05                                          ; Table number
+
+B_TBL_8000_NAME:
+    .TEXT  "CRT\r" \ .BYTE $9A,$9A,$9A,$9A              ; Table name
+
+B_TBL_8000_INIT:
+    JMP     $8DC1                                       ; 82B8 - Table initilization vector
+
+B_TBL_8000_INPUT_NUM:
+    JMP     JMP_92D6 ; $92D6                                       ; 82C5 - Table INPUT# vector
+
+B_TBL_8000_PRINT_NUM:
+    JMP     JMP_92D6 ; $92D6                                       ; 82C9 - Table PRINT# vector
+
+B_TBL_8000_JMPS:
+    .BYTE  $9A,$9A,$9A,$9A,$9A,$9A,$9A,$9A,$9A,$9A      ; Unused jumps 
+
+B_TBL_8000_TRACE:
+    .BYTE $93,$50,$FF                                    ; Unusual
+
+B_TBL_8000_A_KW:
+    .WORD $0000                                         ;
+
+B_TBL_8000_B_KW:
+    .WORD LET_B                                         ; $8056
+
+B_TBL_8000_C_KW:
+    .WORD LET_C                                         ; $8061
+
+B_TBL_8000_D_KW:
+    .WORD LET_D                                         ; $8095
+
+B_TBL_8000_E_KW:
+    .WORD LET_E                                         ; $80A5
+
+B_TBL_8000_F_KW:
+    .WORD $0000                                         ;
+
+B_TBL_8000_G_KW:
+    .WORD LET_G                                         ; $80BE
+
+B_TBL_8000_H_KW:
+    .WORD LET_H                                         ; $80E0
+
+B_TBL_8000_I_KW:
+    .WORD LET_I                                         ; $8102
+
+B_TBL_8000_J_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_K_KW:
+    .WORD LET_K                                         ; $810C
+
+B_TBL_8000_L_KW:
+    .WORD LET_L                                         ; $8114
+
+B_TBL_8000_M_KW:
+    .WORD LET_M                                         ; $8126
+
+B_TBL_8000_N_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_O_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_P_KW:
+    .WORD LET_P                                         ; $813B
+
+B_TBL_8000_Q_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_R_KW:
+    .WORD LET_R                                         ; $8145
+
+B_TBL_8000_S_KW:
+    .WORD LET_S                                         ; $815B
+
+B_TBL_8000_T_KW:
+    .WORD LET_T                                         ; $816E
+
+B_TBL_8000_U_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_V_KW:
+    .WORD LET_V                                         ; $8178
+
+B_TBL_8000_W_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_X_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_Y_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_Z_KW:
+    .WORD $0000                                         ; 
+
+B_TBL_8000_CMD_LST:     ;Token LB < 80 command is function, else is proceedure
+;Ctrl nibble    Ctrl nib calc            Name              Token  Vector
+LET_B:  EQU ($ + 2) ; First keyword starting with 'B'. LET_B = Address of 'A' in BACKGR
+CN1:    EQU $D6 \ CNIB($96,CN1)     \ .TEXT "BACKGR"    \ .WORD $F0DE, $9023        ; $8054
+
+LET_C:  EQU ($ + 2) ; First keyword starting with 'C'. LET_C = Address of 'L' in CLS
+CN2:    EQU $C3 \ CNIB(CN1,CN2)     \ .TEXT "CLS"       \ .WORD $F088, $8974        ; $805F
+CN3:    EQU $A5 \ CNIB(CN2,CN3)     \ .TEXT "CHAIN"     \ .WORD $F0B2, $92DC        ; $8067
+CN4:    EQU $C6 \ CNIB(CN3,CN4)     \ .TEXT "COLORV"    \ .WORD $F0EB, $914F        ; $8071
+CN5:    EQU $C7 \ CNIB(CN4,CN5)     \ .TEXT "CONSOLE"   \ .WORD $F0B1, $89B5        ; $807C
+CN6:    EQU $D6 \ CNIB(CN5,CN6)     \ .TEXT "CURSOR"    \ .WORD $F084, $8A49        ; $8088
+
+LET_D:  EQU ($ + 2) ; First keyword starting with 'D'. LET_D = Address of 'EI' in DIR
+CN7:    EQU $C3 \ CNIB(CN6,CN7)     \ .TEXT "DIR"       \ .WORD $F0E0, $92CA        ; $8093
+CN8:    EQU $53 \ CNIB(CN7,CN8)     \ .TEXT "DEC"       \ .WORD $F070, $914C        ; $809B
+
+LET_E:  EQU ($ + 2) ; First keyword starting with 'E'. LET_E = Address of 'D' in EDIT
+CN9:    EQU $C4 \ CNIB(CN8,CN9)     \ .TEXT "EDIT"      \ .WORD $F0C7, $914F        ; $80A3
+CN10:   EQU $C3 \ CNIB(CN9,CN10)    \ .TEXT "ERL"       \ .WORD $F053, $9088        ; $80AC
+CN11:   EQU $D3 \ CNIB(CN10,CN11)   \ .TEXT "ERN"       \ .WORD $F052, $9082        ; $80B4
+
+LET_G:  EQU ($ + 2) ; First keyword starting with 'G'. LET_G = Address of 'C' in GCLS
+CN12:   EQU $C4 \ CNIB(CN11,CN12)   \ .TEXT "GCLS"      \ .WORD $F0E1, $9107        ; $80BC
+CN13:   EQU $C8 \ CNIB(CN12,CN13)   \ .TEXT "GVCURSOR"  \ .WORD $F0E8, $914F        ; $80C5
+CN14:   EQU $D7 \ CNIB(CN13,CN14)   \ .TEXT "GVPRINT"   \ .WORD $F0E9, $914F        ; $80D2
+
+LET_H:  EQU ($ + 2) ; First keyword starting with 'H'. LET_H = Address of 'C' in HCURSOR
+CN15:   EQU $C7 \ CNIB(CN14,CN15)   \ .TEXT "HCURSOR"   \ .WORD $F054, $8EFD        ; $80DE
+CN16:   EQU $C8 \ CNIB(CN15,CN16)   \ .TEXT "HPCURSOR"  \ .WORD $F055, $8F04        ; $80EA
+CN17:   EQU $B4 \ CNIB(CN16,CN17)   \ .TEXT "HEX$"      \ .WORD $F071, $8981        ; $80F7
+
+LET_I:  EQU ($ + 2) ; First keyword starting with 'I'. LET_I = Address of 'N' in INPUT
+CN18:   EQU $D5 \ CNIB(CN17,CN18)   \ .TEXT "INPUT"     \ .WORD $F091, $8C89        ; $8100
+
+LET_K:  EQU ($ + 2) ; First keyword starting with 'K'. LET_K = Address of 'E' in KEY
+CN19:   EQU $D3 \ CNIB(CN18,CN19)   \ .TEXT "KEY"       \ .WORD $F0E2, $9308        ; $810A
+
+LET_L:  EQU ($ + 2) ; First keyword starting with 'L'. LET_L = Address of 'I' in LIST
+CN20:   EQU $C4 \ CNIB(CN19,CN20)   \ .TEXT "LIST"      \ .WORD $F090, $8F16        ; $8112
+CN21:   EQU $D4 \ CNIB(CN20,CN21)   \ .TEXT "LOAD"      \ .WORD $F080, $9244        ; $811B
+
+LET_M:  EQU ($ + 2) ; First keyword starting with 'M'. LET_M = Address of 'O' in MONITOR
+CN22:   EQU $C7 \ CNIB(CN21,CN22)   \ .TEXT "MONITOR"   \ .WORD $F0E4, $8EE1        ; $8124
+CN23:   EQU $D4 \ CNIB(CN22,CN23)   \ .TEXT "MODE"      \ .WORD $F0DF, $91D3        ; $8130
+
+LET_P:  EQU ($ + 2) ; First keyword starting with 'P'. LET_P = Address of 'R' in PRINT
+CN24:   EQU $D5 \ CNIB(CN23,CN24)   \ .TEXT "PRINT"     \ .WORD $F097, $91A7        ; $8139
+
+LET_R:  EQU ($ + 2) ; First keyword starting with 'R'. LET_R = Address of 'E' in REPKEY
+CN25:   EQU $C6 \ CNIB(CN24,CN25)   \ .TEXT "REPKEY"    \ .WORD $F0C3, $90F1        ; $8143
+CN26:   EQU $D6 \ CNIB(CN25,CN26)   \ .TEXT "REPROG"    \ .WORD $F0C5, $914F        ; $814E
+
+LET_S:  EQU ($ + 2) ; First keyword starting with 'S'. LET_S = Address of 'A' in SAVE
+CN27:   EQU $C4 \ CNIB(CN26,CN27)   \ .TEXT "SAVE"      \ .WORD $F081, $9234        ; $8159
+CN28:   EQU $D5 \ CNIB(CN27,CN28)   \ .TEXT "SLEEP"     \ .WORD $F0E7, $90AA        ; $8162
+
+LET_T:  EQU ($ + 2) ; First keyword starting with 'T'. LET_T = Address of 'E' in TESTV
+CN29:   EQU $D5 \ CNIB(CN28,CN29)   \ .TEXT "TESTV"     \ .WORD $F0EA, $914F        ; $816C
+
+LET_V:  EQU ($ + 2) ; First keyword starting with 'V'. LET_V = Address of 'E' in VERIFYQ
+CN30:   EQU $C7 \ CNIB(CN29,CN30)   \ .TEXT "VERIFYQ"   \ .WORD $F083, $92D9        ; $8176
+CN31:   EQU $C7 \ CNIB(CN30,CN31)   \ .TEXT "VCURSOR"   \ .WORD $F056, $8EE4        ; $8182
+CN32:   EQU $C8 \ CNIB(CN31,CN32)   \ .TEXT "VPCURSOR"  \ .WORD $F050, $8EEB        ; $818E
+
+CN33:  EQU $D0 \ .BYTE CN33
+
+B_TBL_8000_END:
+;% B_TBL_8000 END
+
+
+UNKNOWN:
+819C   00                         SBC  XL
+819D   38                         NOP
+
+JMP_819E:
+819E   FD 98                      PSH  Y
+81A0   FD A5 77 D9                LDA  #(STRING_VARS + $189)
+81A4   B7 01                      CPI  A,$01
+81A6   89 0A                      BZR  BR_81B2 ; $81B2
+81A8   B5 40                      LDI  A,$40
+81AA   AE 79 D1                   STA  (OPN)
+81AD   FD EB 77 D9 02             ORI  #(STRING_VARS + $189),$02
+
+BR_81B2:
+81B2   E9 79 D4 00                ANI  ($79D4),$00 ; ***
+81B6   14                         LDA  YL
+81B7   FD AE 77 D4                STA  #(STRING_VARS + $184)
+81BB   A5 78 80                   LDA  (DISPARAM)
+81BE   B7 02                      CPI  A,$02
+81C0   8B 6D                      BZS  BR_822F ; $822F
+81C2   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+81C6   B7 19                      CPI  A,$19
+81C8   89 05                      BZR  BR_81CF ; $81CF
+81CA   BE 8C 57                   SJP  (JMP_8C57) ; $8C57
+81CD   83 60                      BCS  BR_822F ; $822F
+
+BR_81CF:
+81CF   BE 88 EB                   SJP  (BR_88EB) ; $88EB
+81D2   B7 19                      CPI  A,$19
+81D4   81 03                      BCR  BR_81D9 ; $81D9
+81D6   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+
+BR_81D9:
+81D9   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+81DD   B7 09                      CPI  A,$09
+81DF   89 08                      BZR  BR_81E9 ; $81E9
+81E1   BE 89 29                   SJP  (BR_8929) ; $8929
+81E4   81 49                      BCR  BR_822F ; $822F
+81E6   BE 84 66                   SJP  (BR_8466) ; $8466
+
+BR_81E9:
+81E9   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+81ED   B7 0D                      CPI  A,$0D
+81EF   89 03                      BZR  BR_81F4 ; $81F4
+81F1   BE 87 CC                   SJP  (JMP_87CC) ; $87CC
+
+BR_81F4:
+81F4   BE 88 EB                   SJP  (BR_88EB) ; $88EB
+81F7   B7 19                      CPI  A,$19
+81F9   81 03                      BCR  BR_81FE ; $81FE
+81FB   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+
+BR_81FE;
+81FE   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+8202   18                         STA  YH
+8203   5A 01                      LDI  YL,$01
+8205   FD A5 77 D8                LDA  #(STRING_VARS + $188)
+8209   B7 01                      CPI  A,$01
+820B   89 08                      BZR  BR_8215 ; $8215
+820D   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8210   18                         STA  YH
+8211   A5 77 4F                   LDA  (STRING_VARS + $FF)
+8214   1A                         STA  YL
+
+BR_8215:
+8215   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+8218   FD 18                      LDX  Y
+821A   58 7B                      LDI  YH,$7B
+821C   5A B0                      LDI  YL,$B0
+821E   FD E9 77 D6 00             ANI  #(STRING_VARS + $186),$00
+8223   BE 85 2C                   SJP  (JMP_852C) ; $852C
+8226   BE 86 63                   SJP  (JMP_8663) ; $8663
+8229   BE 84 56                   SJP  (JMP_8456) ; $8456
+822C   BE 87 21                   SJP  (JMP_8721) ; $8721
+
+BR_822F:
+822F   E9 7B 0A 00                ANI  (APOW_CTR_H),$00
+8233   E9 7B 0B 00                ANI  (APOW_CTR_M),$00
+8237   E9 7B 0C 00                ANI  (APOW_CTR_L),$00
+823B   BE 91 50                   SJP  (JMP_9150) ; $9150
+823E   BE 90 DE                   SJP  (JMP_90DE) ; $90DE
+8241   BE 89 63                   SJP  (JMP_8963) ; $8963
+8244   FD C8                      PSH  A
+8246   A5 76 4E                   LDA  (DISP_BUFF + $4E)
+8249   BB F7                      ORI  A,$F7
+824B   B7 FF                      CPI  A,$FF
+824D   8B 03                      BZS  BR_8252 ; $8252
+824F   BA 82 71                   JMP  BR_8271 ; $8271
+
+BR_8252:
+8252   FD 88                      PSH  X
+8254   FD 98                      PSH  Y
+8256   FD A8                      PSH  U
+8258   BE E4 2C                   SJP  (KEY2ASCII)
+825B   FD 2A                      POP  U
+825D   FD 1A                      POP  Y
+825F   FD 0A                      POP  X
+8261   B7 09                      CPI  A,$09
+8263   89 0C                      BZR  BR_8271 ; $8271
+8265   EB 76 4E 04                ORI  (DISP_BUFF + $4E),$04
+8269   E9 76 4E F7                ANI  (DISP_BUFF + $4E),$F7
+826D   FD 8A                      POP  A
+826F   9E D3                      BCH  JMP_819E ; $819E
+
+BR_8271:
+8271   FD 8A                      POP  A
+8273   B7 1A                      CPI  A,$1A
+8275   89 07                      BZR  BR_827E ; $827E
+8277   BE 8D 41                   SJP  (JMP_8D41) ; $8D41
+827A   FD 1A                      POP  Y
+827C   9E E0                      BCH  JMP_819E ; $819E
+
+BR_827E:
+827E   B7 0B                      CPI  A,$0B
+8280   89 17                      BZR  BR_8299 ; $8299
+8282   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+8286   B7 28                      CPI  A,$28
+8288   89 0D                      BZR  BR_8297 ; $8297
+828A   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+828E   B7 03                      CPI  A,$03
+8290   81 05                      BCR  BR_8297 ; $8297
+8292   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+
+BR_8297:
+8297   B5 0B                      LDI  A,$0B
+
+BR_8299:
+8299   B7 0B                      CPI  A,$0B
+829B   89 4D                      BZR  BR_82EA ; $82EA
+829D   FD C8                      PSH  A
+829F   BE 86 E4                   SJP  (JMP_86E4) ; $86E4
+82A2   83 05                      BCS  BR_82A9 ; $82A9
+82A4   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+
+BR_82A9:
+82A9   FD 8A                      POP  A
+82AB   FD EB 77 DF 01             ORI  #(STRING_VARS + $18F),$01
+82B0   B5 0A                      LDI  A,$0A
+82B2   FD AE 78 00                STA  #(CPU_STACK)
+82B6   FD A5 77 DA                LDA  #(STRING_VARS + $18A)
+82BA   FD AE 78 01                STA  #(CPU_STACK + $01)
+82BE   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+82C3   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+82C7   B7 00                      CPI  A,$00
+82C9   89 08                      BZR  BR_82D3 ; $82D3
+82CB   BE 91 89                   SJP  (JMP_9189) ; $9189
+82CE   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+
+BR_82D3:
+82D3   FD A5 77 D9                LDA  #(STRING_VARS + $189)
+82D7   B7 99                      CPI  A,$99
+82D9   89 0B                      BZR  BR_82E6 ; $82E6
+82DB   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+82E0   B5 02                      LDI  A,$02
+82E2   FD AE 77 D9                STA  #(STRING_VARS + $189)
+
+BR_82E6:
+82E6   B5 0B                      LDI  A,$0B
+82E8   8E D1                      BCH  BR_83BB ; $83BB
+
+BR_82EA:
+82EA   B7 0A                      CPI  A,$0A
+82EC   89 29                      BZR  BR_8317 ; $8317
+82EE   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+82F2   B7 28                      CPI  A,$28
+82F4   89 1F                      BZR  BR_8315 ; $8315
+82F6   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+82FA   B7 17                      CPI  A,$17
+82FC   81 12                      BCR  BR_8310 ; $8310
+82FE   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+8301   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+8306   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+830B   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+
+BR_8310:
+8310   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+
+BR_8315:
+8315   B5 0A                      LDI  A,$0A
+
+BR_8317:
+8317   B7 0A                      CPI  A,$0A
+8319   89 13                      BZR  BR_832E ; $832E
+831B   FD C8                      PSH  A
+831D   BE 86 FA                   SJP  (JMP_86FA) ; $86FA
+8320   83 05                      BCS  BR_8327 ; $8327
+8322   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+
+BR_8327:
+8327   FD 8A                      POP  A
+8329   FD EB 77 DF 01             ORI  #(STRING_VARS + $18F),$01
+
+BR_832E:
+832E   B7 0C                      CPI  A,$0C
+8330   89 11                      BZR  BR_8343 ; $8343
+8332   FD ED 77 DF 01             BII  #(STRING_VARS + $18F),$01
+8337   8B 0A                      BZS  BR_8343 ; $8343
+8339   FD E9 77 DF 00             ANI  #(STRING_VARS + $18F),$00
+833E   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+
+BR_8343:
+8343   B7 08                      CPI  A,$08
+8345   89 11                      BZR  $BR_8358
+8347   FD ED 77 DF 01             BII  #(STRING_VARS + $18F),$01
+834C   8B 0A                      BZS  $BR_8358
+834E   FD E9 77 DF 00             ANI  #(STRING_VARS + $18F),$00
+8353   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+
+BR_8358:
+8358   B7 0E                      CPI  A,$0E
+835A   89 05                      BZR  BR_8361 ; $8361
+835C   FD E9 77 D8 00             ANI  #(STRING_VARS + $188),$00
+
+BR_8361:
+8361   B7 1F                      CPI  A,$1F
+8363   89 02                      BZR  BR_8367 ; $8367
+8365   8E 04                      BCH  BR_836B ; $836B
+
+BR_8367:
+8367   B7 1E                      CPI  A,$1E
+8369   89 09                      BZR  BR_8374 ; $8374
+
+BR_836B: 
+836B   FD C8                      PSH  A
+836D   BE 8D 41                   SJP  (JMP_8D41) ; $8D41
+8370   FD 8A                      POP  A
+8372   8E 47                      BCH  BR_83BB ; $83BB
+
+BR_8374:
+8374   B7 0E                      CPI  A,$0E
+8376   83 09                      BCS  BR_8381 ; $8381
+8378   B7 0A                      CPI  A,$0A
+837A   81 05                      BCR  BR_8381 ; $8381
+837C   BE 83 C6                   SJP  (JMP_83C6) ; $83C6
+837F   8E 3A                      BCH  BR_83BB ; $83BB
+
+BR_8381:
+8381   1A                         STA  YL
+8382   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+8386   B7 0D                      CPI  A,$0D
+8388   89 03                      BZR  BR_838D ; $838D
+838A   BE 84 2D                   SJP  (JMP_842D) ; $842D
+
+BR_838D:
+838D   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+8391   B7 0A                      CPI  A,$0A
+8393   89 03                      BZR  BR_8398 ; $8398
+8395   BE 84 3B                   SJP  (JMP_843B) ; $843B
+
+BR_8398:
+8398   B7 0B                      CPI  A,$0B
+839A   89 03                      BZR  $839F
+839C   BE 84 3B                   SJP  (JMP_843B) ; $843B
+839F   14                         LDA  YL
+83A0   E9 7B 0E FD                ANI  (CURS_CTRL),$FD
+83A4   FD C8                      PSH  A
+83A6   B5 55                      LDI  A,$55
+83A8   FD A7 77 E2                CPA  #(STRING_VARS + $192)
+83AC   89 0B                      BZR  BR_83B9 ; $83B9
+83AE   FD 88                      PSH  X
+83B0   FD A8                      PSH  U
+83B2   BE E6 69                   SJP  (BCMD_BEEP_STD)
+83B5   FD 2A                      POP  U
+83B7   FD 0A                      POP  X
+
+BR_83B9:
+83B9   FD 8A                      POP  A
+
+BR_83BB:
+83BB   FD 1A                      POP  Y
+83BD   FD AE 77 D3                STA  #(STRING_VARS + $183)
+83C1   EB 79 D4 55                ORI  ($79D4),$55 ; ***
+83C5   9A                         RTN
+
+JMP_83C6:
+83C6   1A                         STA  YL
+83C7   B5 3E                      LDI  A,$3E
+83C9   A7 7B B0                   CPA  (IN_BUF)
+83CC   8B 49                      BZS  BR_8417 ; $8417
+83CE   B5 0D                      LDI  A,$0D
+83D0   FD A7 77 D3                CPA  #(STRING_VARS + $183)
+83D4   89 0F                      BZR  $83E5
+83D6   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+83DA   B7 50                      CPI  A,$50
+83DC   8B 12                      BZS  BR_83F0 ; $83F0
+83DE   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+83E3   8E 32                      BCH  BR_8417 ; $8417
+83E5   16                         CPA  YL
+83E6   8B 31                      BZS  BR_8419 ; $8419
+83E8   5E 08                      CPI  YL,$08
+83EA   8B 33                      BZS  BR_841F ; $841F
+83EC   5E 0C                      CPI  YL,$0C
+83EE   8B 2F                      BZS  BR_841F ; $841F
+
+BR_83F0:
+83F0   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+83F5   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+83F9   B7 28                      CPI  A,$28
+83FB   89 1A                      BZR  BR_8417 ; $8417
+83FD   FD 98                      PSH  Y
+83FF   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+8403   DF                         DEC  A
+8404   18                         STA  YH
+8405   5A 28                      LDI  YL,$28
+8407   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+840A   FD 15                      LDA  #(Y)
+840C   FD 1A                      POP  Y
+840E   B7 0E                      CPI  A,$0E
+8410   81 05                      BCR  BR_8417 ; $8417
+8412   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+
+BR_8417:
+8417   14                         LDA  YL
+8418   9A                         RTN
+
+BR_8419:
+8419   5E 0D                      CPI  YL,$0D
+841B   8B 02                      BZS  BR_841F ; $841F
+841D   9E 2F                      BCH  BR_83F0 ; $83F0
+
+BR_841F:
+841F   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+8423   B7 0A                      CPI  A,$0A
+8425   9B 37                      BZS  BR_83F0 ; $83F0
+8427   B7 0B                      CPI  A,$0B
+8429   9B 3B                      BZS  BR_83F0 ; $83F0
+842B   9E 16                      BCH  BR_8417 ; $8417
+
+JMP_842D:
+842D   B5 3E                      LDI  A,$3E
+842F   A7 7B B0                   CPA  (IN_BUF)
+8432   89 01                      BZR  BR_8435 ; $8435
+8434   9A                         RTN
+
+BR_8435:
+8435   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+843A   9A                         RTN
+
+JMP_843B:
+843B   A5 76 4F                   LDA  (DISP_BUFF + $4F)
+843E   B9 20                      ANI  A,$20
+8440   B7 20                      CPI  A,$20
+8442   99 2D                      BZR  BR_8417 ; $8417
+8444   5E 0A                      CPI  YL,$0A
+8446   89 07                      BZR  BR_844F ; $844F
+8448   BE 86 FA                   SJP  (JMP_86FA) $86FA
+844B   91 36                      BCR  BR_8417 ; $8417
+844D   9E 5F                      BCH  BR_83F0 ; $83F0
+
+BR_844F: 
+844F   BE 86 E4                   SJP  (JMP_86E4) ; $86E4
+8452   91 3D                      BCR  BR_8417 ; $8417
+8454   9E 66                      BCH  BR_83F0 ; $83F0
+
+JMP_8456:
+8456   A5 7B B0                   LDA  (IN_BUF)
+8459   B7 3E                      CPI  A,$3E
+845B   8B 01                      BZS  BR_845E ; $845E
+845D   9A                         RTN
+
+BR_845E: 
+845E   A5 78 7B                   LDA  ($787B) ; ***
+8461   B7 09                      CPI  A,$09
+8463   81 01                      BCR  BR_8466 ; $8466
+8465   9A                         RTN
+
+BR_8466:
+8466   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+846A   18                         STA  YH
+846B   5A 01                      LDI  YL,$01
+846D   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+8470   FD 88                      PSH  X
+8472   48 8E                      LDI  XH,$8E
+8474   4A B3                      LDI  XL,$B3
+8476   68 0D                      LDI  UH,$0D
+8478   B5 40                      LDI  A,$40
+847A   A9 76 4F                   AND  (DISP_BUFF + $4F)
+847D   B7 40                      CPI  A,$40
+847F   89 13                      BZR  BR_8494 ; $8494
+8481   FD ED 77 F3 01             BII  #(STRING_VARS + $1A3),$01
+8486   83 05                      BCS  BR_848D ; $848D
+8488   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+
+BR_848D:
+848D   FD E9 77 F3 00             ANI  #(STRING_VARS + $1A3),$00
+8492   8E 27                      BCH  BR_84BB ; $84BB
+
+BR_8494:
+8494   FD E9 77 F3 00             ANI  #(STRING_VARS + $1A3),$00
+8499   B5 20                      LDI  A,$20
+849B   A9 76 4F                   AND  (DISP_BUFF + $4F)
+849E   B7 20                      CPI  A,$20
+84A0   8B 19                      BZS  BR_84BB ; $84BB
+84A2   B5 10                      LDI  A,$10
+84A4   A9 76 4F                   AND  (DISP_BUFF + $4F)
+84A7   B7 10                      CPI  A,$10
+84A9   89 29                      BZR  BR_84D4 ; $84D4
+84AB   B5 06                      LDI  A,$06
+84AD   FD CA                      ADR  X
+84AF   6A 0D                      LDI  UL,$0D
+84B1   BE 88 FD                   SJP  (JMP_88FD) ; $88FD
+84B4   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+84B9   8E 0A                      BCH  BR_84C5 ; $84C5
+
+BR_84BB: 
+84BB   B7 20                      CPI  A,$20
+84BD   89 04                      BZR  BR_84C3 ; $84C3
+84BF   B5 03                      LDI  A,$03
+84C1   FD CA                      ADR  X
+
+BR_84C3:
+84C3   6A 02                      LDI  UL,$02
+
+BR_84C5:
+84C5   B5 3E                      LDI  A,$3E
+84C7   FD 1E                      STA  #(Y)
+84C9   54                         INC  Y
+84CA   BE 8D 64                   SJP  (JMP_8D64) ; $8D64
+84CD   BE 89 63                   SJP  (JMP_8963) ; $8963
+84D0   54                         INC  Y
+84D1   A4                         LDA  UH
+84D2   FD 1E                      STA  #(Y)
+
+BR_84D4:
+84D4   FD 0A                      POP  X
+84D6   9A                         RTN
+
+JMP_84D7:
+84D7   1A                         STA  YL
+84D8   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+84DC   B7 28                      CPI  A,$28
+84DE   8B 06                      BZS  BR_84E6 ; $84E6
+84E0   5E 19                      CPI  YL,$19
+84E2   89 02                      BZR  BR_84E6 ; $84E6
+84E4   14                         LDA  YL
+84E5   9A                         RTN
+
+BR_84E6:
+84E6   BE 8E 5F                   SJP  (JMP_8E5F) ; $8E5F
+84E9   FD 18                      LDX  Y
+84EB   FD CA                      ADR  X
+84ED   B7 28                      CPI  A,$28
+84EF   89 0C                      BZR  BR_84FD ; $84FD
+84F1   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+84F5   B7 19                      CPI  A,$19
+84F7   8B 04                      BZS   BR_84FD ; $84FD
+84F9   B5 28                      LDI  A,$28
+84FB   FD CA                      ADR  X
+
+BR_84FD;
+84FD   68 07                      LDI  UH,$07
+84FF   6A 80                      LDI  UL,$80
+
+BR_8501:
+8501   FD 05                      LDA  #(X)
+8503   FD 1E                      STA  #(Y)
+8505   44                         INC  X
+8506   54                         INC  Y
+8507   88 08                      LOP  UL,BR_8501 ; $8501
+8509   FD 62                      DEC  UH
+850B   93 0C                      BCS  BR_8501 ; $8501
+850D   B5 00                      LDI  A,$00
+850F   6A 4F                      LDI  UL,$4F
+
+BR_8511:
+8511   FD 1E                      STA  #(Y)
+8513   54                         INC  Y
+8514   88 05                      LOP  UL,BR_8511 ; $8511
+8516   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+851A   B7 28                      CPI  A,$28
+851C   89 04                      BZR  BR_8522 ; $8522
+851E   B5 18                      LDI  A,$18
+8520   8E 02                      BCH  BR_8524 ; $8524
+
+BR_8522: 
+8522   B5 19                      LDI  A,$19
+
+BR_8524:
+8524   FD AE 77 D2                STA  #(STRING_VARS + $182)
+8528   AE 77 4E                   STA  (STRING_VARS + $FE)
+852B   9A                         RTN
+
+JMP_852C:
+852C   68 00                      LDI  UH,$00
+852E   6A 4F                      LDI  UL,$4F
+8530   FD E9 77 D7 00             ANI  #(STRING_VARS + $187),$00
+
+BR_8535:
+8535   BE 88 54                   SJP  (BR_8854) ; $8854
+8538   14                         LDA  YL
+8539   FD A7 77 D4                CPA  #(STRING_VARS + $184)
+853D   89 17                      BZR  BR_8856 ; $8556
+853F   FD A5 77 D6                LDA  #(STRING_VARS + $186)
+8543   B7 00                      CPI  A,$00
+8545   89 0F                      BZR  BR_8856 ; $8556
+8547   84                         LDA  XH
+8548   FD AE 77 D4                STA  #(STRING_VARS + $184)
+854C   04                         LDA  XL
+854D   FD AE 77 D5                STA  #(STRING_VARS + $185)
+8551   FD EB 77 D6 01             ORI  #(STRING_VARS + $186),$01
+
+BR_8856:
+8556   FD A8                      PSH  U
+8558   C0                         VEJ  (C0)
+8559   81 60                      BCR  BR_85BB ; $85BB
+855B   FD 98                      PSH  Y
+855D   FD 88                      PSH  X
+855F   58 7B                      LDI  YH,$7B
+8561   5A 00                      LDI  YL,$00
+8563   FD 98                      PSH  Y
+8565   CD 1C 02                   VMJ  ($1C) \ ABYT($02)
+8568   BE 86 56                   SJP  (BR_8856) ; $8656
+856B   FD 0A                      POP  X
+856D   59 00                      ANI  (Y),$00
+856F   B7 00                      CPI  A,$00
+8571   89 03                      BZR  BR_8576 ; $8576
+8573   B5 FE                      LDI  A,$FE
+8575   0E                         STA  (X)
+
+BR_8576:
+8576   14                         LDA  YL
+8577   2A                         STA  UL
+8578   FD 1A                      POP  Y
+
+BR_857A:
+857A   45                         LIN  X
+857B   FD 1E                      STA  #(Y)
+857D   54                         INC  Y
+857E   FD C8                      PSH  A
+8580   FD A5 77 D8                LDA  #(STRING_VARS + $188)
+8584   B7 01                      CPI  A,$01
+8586   8B 04                      BZS  BR_858C ; $858C
+8588   FD 8A                      POP  A
+858A   8E 09                      BCH  BR_8595 ; $8595
+
+BR_858C:
+858C   FD 8A                      POP  A
+858E   B7 0D                      CPI  A,$0D
+8590   89 03                      BZR  BR_8595 ; $8595
+8592   F9                         REC
+8593   8E 21                      BCH  BR_85B6 ; $85B6
+
+BR_8595:
+8595   FD EF 77 D7 01             ADI  #(STRING_VARS + $187),$01
+859A   BE 87 E7                   SJP  (JMP_87E7) ; $87E7
+859D   83 17                      BCS  BR_85B6 ; $85B6
+859F   B7 FF                      CPI  A,$FF
+85A1   89 01                      BZR  BR_85A4 ; $85A4
+85A3   56                         DEC  Y
+
+BR_85A4:
+85A4   88 2C                      LOP  UL,BR_857A ; $857A
+85A6   FD 62                      DEC  UH
+85A8   FD 62                      DEC  UH
+85AA   A4                         LDA  UH
+85AB   FD 18                      LDX  Y
+85AD   FD 1A                      POP  Y
+85AF   FD 2A                      POP  U
+85B1   DD                         INC  A
+85B2   2A                         STA  UL
+85B3   88 80                      LOP  UL,BR_8535 ; $8535
+85B5   9A                         RTN
+
+BR_85B6:
+85B6   FD 1A                      POP  Y
+85B8   FD 2A                      POP  U
+85BA   9A                         RTN
+
+BR_85BB:
+85BB   FD 2A                      POP  U
+85BD   6E 4B                      CPI  UL,$4B
+85BF   81 03                      BCR  BR_85C4 ; $85C4
+85C1   BE 86 04                   SJP  (BR_8604) ; $8604
+
+BR_85C4:
+85C4   FD 0E                      STA  #(X)
+85C6   44                         INC  X
+85C7   FD C8                      PSH  A
+85C9   FD A5 77 D8                LDA  #(STRING_VARS + $188)
+85CD   B7 01                      CPI  A,$01
+85CF   8B 04                      BZS  BR_85D5 ; $85D5
+85D1   FD 8A                      POP  A
+85D3   8E 1B                      BCH  BR_85F0 ; $85F0
+
+BR_85D5:
+85D5   FD 8A                      POP  A
+85D7   B7 0D                      CPI  A,$0D
+85D9   89 15                      BZR  BR_85F0 ; $85F0
+85DB   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+85DF   B7 18                      CPI  A,$18
+85E1   8B 06                      BZS  $85E9 ; ???
+85E3   46                         DEC  X
+85E4   46                         DEC  X
+85E5   BE 88 BF                   SJP  (JMP_88BF) ; $88BF
+85EF   9A                         RTN
+
+85E9   FD 05                      LDA  #(X)
+85EB   B7 0E                      CPI  A,$0E
+85ED   83 01                      BCS+ $85F0
+85EF   9A                         RTN
+
+BR_85F0:
+85F0   FD EF 77 D7 01             ADI  #(STRING_VARS + $187),$01
+85F5   BE 87 E7                   SJP  (JMP_87E7) ; $87E7
+85F8   81 01                      BCR  BR_85FB ; $85FB
+85FA   9A                         RTN
+
+BR_85FB:
+85FB   B7 FF                      CPI  A,$FF
+85FD   89 01                      BZR  BR_8600 ; $8600
+85FF   46                         DEC  X
+
+BR_8600:
+8600   88 CD                      LOP  UL,BR_8535 ; $8535
+8602   F9                         REC
+8603   9A                         RTN
+
+BR_8604:
+8604   6C FF                      CPI  UH,$FF
+8606   89 01                      BZR  BR_8609 ; $8609
+8608   9A                         RTN
+
+BR_8609:
+8609   B7 3A                      CPI  A,$3A
+860B   81 03                      BCR  BR_8610 ; $8610
+
+BR_860D:
+860D   68 FF                      LDI  UH,$FF
+860F   9A                         RTN
+
+BR_8610:
+8610   B7 30                      CPI  A,$30
+8612   91 07                      BCR  BR_860D ; $860D
+8614   FD C8                      PSH  A
+8616   B5 40                      LDI  A,$40
+8618   A7 78 80                   CPA  (DISPARAM)
+861B   89 04                      BZR  BR_8621 ; $8621
+861D   FD 8A                      POP  A
+861F   9E 14                      BCH  BR_860D ; $860D
+
+BR_8621:
+8621   B5 20                      LDI  A,$20
+8623   A7 78 80                   CPA  (DISPARAM)
+8626   89 04                      BZR  BR_862C ; $862C
+8628   FD 8A                      POP  A
+862A   9E 1F                      BCH  BR_860D ; $860D
+
+BR_862C:
+862C   B5 50                      LDI  A,$50
+862E   FB                         SEC
+862F   20                         SBC  UL
+8630   FD A8                      PSH  U
+8632   68 7A                      LDI  UH,$7A
+8634   6A 08                      LDI  UL,$08
+8636   FD EA                      ADR  U
+8638   25                         LDA  (U)
+8639   FD 2A                      POP  U
+863B   B7 3A                      CPI  A,$3A
+863D   8B 07                      BZS  BR_8646 ; $8646
+863F   B7 20                      CPI  A,$20
+8641   8B 03                      BZS  BR_8646 ; $8646
+8643   FD 8A                      POP  A
+8645   9A                         RTN
+
+BR_8646:
+8646   28                         STA  UH
+8647   FD 8A                      POP  A
+8649   FD 0E                      STA  #(X)
+864B   FD EF 77 D7 01             ADI  #(STRING_VARS + $187),$01
+8650   44                         INC  X
+8651   62                         DEC  UL
+8652   A4                         LDA  UH
+8653   68 FF                      LDI  UH,$FF
+8655   9A                         RTN
+8656   FD 48                      LDX  S
+8658   FD C8                      PSH  A
+865A   B5 0A                      LDI  A,$0A
+865C   FD CA                      ADR  X
+865E   05                         LDA  (X)
+865F   28                         STA  UH
+8660   FD 8A                      POP  A
+8662   9A                         RTN
+
+JMP_8663:
+8663   A5 78 80                   LDA  (DISPARAM)
+8666   B7 80                      CPI  A,$80
+8668   89 03                      BZR  BR_866D ; $866D
+866A   BA 89 63                   JMP  JMP_8963 ; $8963
+
+BR_866D:
+866D   B7 A0                      CPI  A,$A0
+866F   89 03                      BZR  BR_8674 ; $8674
+8671   BA 89 63                   JMP  JMP_8963 ; $8963
+
+BR_8674:
+8674   B7 01                      CPI  A,$01
+8676   89 03                      BZR  BR_867B ; $867B
+8678   BA 89 63                   JMP  JMP_8963 ; $8963
+
+
+BR_867B:
+867B   FD A5 77 D4                LDA  #(STRING_VARS + $184)
+867F   18                         STA  YH
+8680   FD A5 77 D5                LDA  #(STRING_VARS + $185)
+8684   1A                         STA  YL
+8685   B5 0E                      LDI  A,$0E
+8687   FD AE 78 00                STA  #(CPU_STACK)
+868B   94                         LDA  YH
+868C   FD AE 78 01                STA  #(CPU_STACK + $01)
+8690   B5 0F                      LDI  A,$0F
+8692   FD AE 78 00                STA  #(CPU_STACK)
+8696   14                         LDA  YL
+8697   FD AE 78 01                STA  #(CPU_STACK + $01)
+869B   FD A5 77 DA                LDA  #(STRING_VARS + $18A)
+869F   FD 88                      PSH  X
+86A1   FD C8                      PSH  A
+86A3   48 8E                      LDI  XH,$8E
+86A5   4A A1                      LDI  XL,$A1
+86A7   B5 1C                      LDI  A,$1C
+86A9   FD CA                      ADR  X
+86AB   ED 78 7C 01                BII  (CURSOR_BLNK),$01
+86AF   8B 05                      BZS  BR_86B6 ; $86B6
+86B1   FD EB 77 DA 40             ORI  #(STRING_VARS + $18A),$40
+
+BR_86B6:
+86B6   ED 78 7C 01                BII  (CURSOR_BLNK),$01
+86BA   89 05                      BZR  BR_86C1 ; $86C1
+86BC   FD E9 77 DA BF             ANI  #(STRING_VARS + $18A),$BF
+
+BR_86C1:
+86C1   B5 0A                      LDI  A,$0A
+86C3   FD AE 78 00                STA  #(CPU_STACK)
+86C7   FD A5 77 DA                LDA  #(STRING_VARS + $18A)
+86CB   FD AE 78 01                STA  #(CPU_STACK + $01)
+86CF   B5 0B                      LDI  A,$0B
+86D1   FD AE 78 00                STA  #(CPU_STACK)
+86D5   FD A5 77 DB                LDA  #(STRING_VARS + $18B)
+86D9   B9 1F                      ANI  A,$1F
+86DB   FD AE 78 01                STA  #(CPU_STACK + $01)
+86DF   FD 8A                      POP  A
+86E1   FD 0A                      POP  X
+86E3   9A                         RTN
+
+JMP_86E4:
+86E4   A5 78 65                   LDA  (BASPRG_ST_H)
+86E7   A7 78 A6                   CPA  (SRCH_ADD_H)
+86EA   8B 02                      BZS  BR_86EE ; $86EE
+86EC   FB                         SEC
+86ED   9A                         RTN
+
+BR_86EE:
+86EE   A5 78 66                   LDA  (BASPRG_ST_L)
+86F1   A7 78 A7                   CPA  (SRCH_ADD_L)
+86F4   8B 02                      BZS  BR_86F8 ; $86F8
+86F6   FB                         SEC
+86F7   9A                         RTN
+
+BR_86F8:
+86F8   F9                         REC
+86F9   9A                         RTN
+
+JMP_86FA:
+86FA   FD 88                      PSH  X
+86FC   A5 78 A6                   LDA  (SRCH_ADD_H)
+86FF   08                         STA  XH
+8700   A5 78 A7                   LDA  (SRCH_ADD_L)
+8703   0A                         STA  XL
+8704   44                         INC  X
+8705   44                         INC  X
+8706   45                         LIN  X
+8707   FD CA                      ADR  X
+8709   A5 78 67                   LDA  (BASPRG_END_H)
+870C   86                         CPA  XH
+870D   8B 04                      BZS  BR_8713 ; $8713
+870F   FD 0A                      POP  X
+8711   FB                         SEC
+8712   9A                         RTN
+
+BR_8713:
+8713   A5 78 68                   LDA  (BASPRG_END_L)
+8716   06                         CPA  XL
+8717   8B 04                      BZS  BR_871D ; $871D
+8719   FD 0A                      POP  X
+871B   FB                         SEC
+871C   9A                         RTN
+
+BR_871D:
+871D   FD 0A                      POP  X
+871F   F9                         REC
+8720   9A                         RTN
+
+JMP_8721:
+8721   A5 78 80                   LDA  (DISPARAM)
+8724   FD C8                      PSH  A
+8726   B7 20                      CPI  A,$20
+8728   8B 28                      BZS  BR_8752 ; $8752
+872A   B7 80                      CPI  A,$80
+872C   8B 24                      BZS  BR_8752 ; $8752
+872E   B7 A0                      CPI  A,$A0
+8730   8B 20                      BZS  BR_8752 ; $8752
+8732   B7 01                      CPI  A,$01
+8734   8B 1C                      BZS  BR_8752 ; $8752
+8736   FD 8A                      POP  A
+8738   FD A5 77 D3                LDA  #(STRING_VARS + $183)
+873C   B7 0D                      CPI  A,$0D
+873E   8B 01                      BZS  BR_8741 ; $8741
+8740   9A                         RTN
+
+BR_8741:
+8741   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+8745   B7 28                      CPI  A,$28
+8747   8B 01                      BZS  BR_874A ; $874A
+8749   9A                         RTN
+
+BR_874A:
+874A   A5 7B D7                   LDA  (IN_BUF + $27)
+874D   B7 0D                      CPI  A,$0D
+874F   89 6A                      BZR  BR_87BB ; $87BB
+8751   9A                         RTN
+
+BR_8752:
+8752   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+8757   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+875B   B7 19                      CPI  A,$19
+875D   81 03                      BCR  BR_8762 ; $8762
+875F   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+
+BR_8762:
+8762   BE 87 D4                   SJP  (JMP_87D4) ; $87D4
+8765   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+8769   18                         STA  YH
+876A   5A 01                      LDI  YL,$01
+876C   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+876F   6A 4F                      LDI  UL,$4F
+8771   FD 8A                      POP  A
+8773   B7 20                      CPI  A,$20
+8775   89 06                      BZR  BR_877D ; $877D
+8777   48 7B                      LDI  XH,$7B
+8779   4A 60                      LDI  XL,$60
+877B   8E 0C                      BCH  BR_8789 ; $8789
+
+BR_877D:
+877D   48 7A                      LDI  XH,$7A
+877F   4A 10                      LDI  XL,$10
+8781   6A 19                      LDI  UL,$19
+8783   B5 0D                      LDI  A,$0D
+8785   FD AE 77 D3                STA  #(STRING_VARS + $183)
+
+BR_8789:
+8789   68 00                      LDI  UH,$00
+
+BR_878B:
+878B   45                         LIN  X
+878C   B7 00                      CPI  A,$00
+878E   8B 0D                      BZS  BR_879D; $879D
+8790   6C 02                      CPI  UH,$02
+8792   8B 09                      BZS  BR_879D ; $879D
+8794   68 01                      LDI  UH,$01
+8796   FD 1E                      STA  #(Y)
+8798   54                         INC  Y
+
+BR_8799:
+8799   88 10                      LOP  UL,BR_878B ; $878B
+879B   8E 08                      BCH   ; BR_87A5$87A5
+
+BR_879D:
+879D   6C 01                      CPI  UH,$01
+879F   89 02                      BZR  BR_87A3 ; $87A3
+87A1   FD 60                      INC  UH
+
+BR_87A3:
+87A3   9E 0C                      BCH  BR_8799 ; $8799
+
+BR_87A5:
+87A5   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+87A9   B7 28                      CPI  A,$28
+87AB   8B 01                      BZS  BR_87AE ; $87AE
+87AD   9A                         RTN
+
+BR_87AE:
+87AE   4C 7B                      CPI  XH,$7B
+87B0   8B 01                      BZS  BR_87B3 ; $87B3
+87B2   9A                         RTN
+
+BR_87B3:
+87B3   A5 7B 87                   LDA  (OUT_BUF + $27)
+87B6   B7 00                      CPI  A,$00
+87B8   89 01                      BZR  BR_87BB ; $87BB
+87BA   9A                         RTN
+
+BR_87BB:
+87BB   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+87C0   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+87C4   B7 19                      CPI  A,$19
+87C6   81 03                      BCR  BR_87CB ; $87CB
+87C8   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+
+BR_87CB:
+87CB   9A                         RTN
+
+JMP_87CC:
+87CC   A5 7B B0                   LDA  (IN_BUF)
+87CF   B7 3E                      CPI  A,$3E
+87D1   9B 18                      BZS  BR_87BB ; $87BB
+87D3   9A                         RTN
+
+JMP_87D4:
+87D4   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+87D8   B7 28                      CPI  A,$28
+87DA   8B 01                      BZS  BR_87DD ; $87DD
+87DC   9A                         RTN
+
+BR_87DD:
+87DD   A5 7B D8                   LDA  (IN_BUF + $28)
+87E0   B7 0D                      CPI  A,$0D
+87E2   89 01                      BZR  BR_87E5 ; $87E5
+87E4   9A                         RTN
+
+BR_87E5:
+87E5   9E 2C                      BCH  BR_87BB ; $87BB
+
+JMP_87E7:
+87E7   FD A5 77 D7                LDA  #(STRING_VARS + $187)
+87EB   B7 50                      CPI  A,$50
+87ED   83 01                      BCS  BR_87F0 ; $87F0
+87EF   9A                         RTN
+
+BR_87F0:
+87F0   A5 78 80                   LDA  (DISPARAM)
+87F3   B7 50                      CPI  A,$50
+87F5   8B 06                      BZS  BR_87FD ; $87FD
+87F7   B7 54                      CPI  A,$54
+87F9   8B 02                      BZS  BR_87FD ; $87FD
+87FB   FB                         SEC
+87FC   9A                         RTN
+
+BR_87FD:
+87FD   FD A5 77 D6                LDA  #(STRING_VARS + $186)
+8801   B7 01                      CPI  A,$01
+
+BR_8803:
+8803   89 02                      BZR  BR_8807 ; $8807
+8805   FB                         SEC
+8806   9A                         RTN
+
+BR_8807:
+8807   FD 88                      PSH  X
+8809   FD 98                      PSH  Y
+880B   FD A8                      PSH  U
+880D   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+8811   18                         STA  YH
+8812   5A 01                      LDI  YL,$01
+8814   FD A5 77 D8                LDA  #(STRING_VARS + $188)
+8818   B7 01                      CPI  A,$01
+881A   89 08                      BZR  BR_8824 ; $8824
+881C   A5 77 4E                   LDA  (STRING_VARS + $FE)
+881F   18                         STA  YH
+8820   A5 77 4F                   LDA  (STRING_VARS + $FF)
+8823   1A                         STA  YL
+
+BR_8824:
+8824   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+8827   48 7B                      LDI  XH,$7B
+8829   4A B0                      LDI  XL,$B0
+882B   6A 4F                      LDI  UL,$4F
+882D   45                         LIN  X
+882E   54                         INC  Y
+882F   B7 30                      CPI  A,$30
+8831   81 06                      BCR  BR_8839 ; $8839
+8833   B7 3A                      CPI  A,$3A
+8835   83 02                      BCS  BR_8839 ; $8839
+8837   88 0C                      LOP  UL,$882D
+
+BR_8839:
+8839   FD 18                      LDX  Y
+883B   54                         INC  Y
+883C   62                         DEC  UL
+
+BR_883D:
+883D   FD 15                      LDA  #(Y)
+883F   54                         INC  Y
+8840   FD 0E                      STA  #(X)
+8842   44                         INC  X
+8843   88 08                      LOP  UL,BR_883D ; $883D
+8845   FD 2A                      POP  U
+8847   FD 1A                      POP  Y
+8849   FD 0A                      POP  X
+884B   FD EF 77 D7 FF             ADI  #(STRING_VARS + $187),$FF
+8850   B5 FF                      LDI  A,$FF
+8852   F9                         REC
+8853   9A                         RTN
+
+BR_8854:
+8854   FD A5 77 D8                LDA  #(STRING_VARS + $188)
+8858   B7 01                      CPI  A,$01
+885A   8B 01                      BZS  BR_885D ; $885D
+885C   9A                         RTN
+
+BR_885D:
+885D   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8860   B7 16                      CPI  A,$16
+8862   83 01                      BCS  BR_8865 ; $8865
+8864   9A                         RTN
+
+BR_8865:
+8865   FD 98                      PSH  Y
+8867   FD A8                      PSH  U
+8869   FD 88                      PSH  X
+886B   04                         LDA  XL
+886C   FB                         SEC
+886D   A1 70 01                   SBC  (SHADOW_RAM + $01)
+8870   0A                         STA  XL
+8871   84                         LDA  XH
+8872   A1 70 00                   SBC  (SHADOW_RAM)
+8875   08                         STA  XH
+8876   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+887A   B7 50                      CPI  A,$50
+887C   89 08                      BZR  BR_8886 ; $8886
+887E   4C 07                      CPI  XH,$07
+8880   89 02                      BZR  BR_8884 ; $8884
+8882   4E D0                      CPI  XL,$D0
+
+BR_8884:
+8884   8E 06                      BCH  BR_888C ; $888C
+
+BR_8886:
+8886   4C 03                      CPI  XH,$03
+8888   89 02                      BZR  BR_888C ; $888C
+888A   4E E8                      CPI  XL,$E8
+
+BR_888C:
+888C   81 20                      BCR  BR_88AE ; $88AE
+888E   B5 1A                      LDI  A,$1A
+8890   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+8893   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8896   18                         STA  YH
+8897   5A 01                      LDI  YL,$01
+8899   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+889C   FD 0A                      POP  X
+889E   FD 98                      PSH  Y
+88A0   BE 88 B5                   SJP  (JMP_88B5) ; $88B5
+88A3   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+88A7   B7 50                      CPI  A,$50
+88A9   8B 03                      BZS  BR_88AE ; $88AE
+88AB   BE 88 B5                   SJP  (JMP_88B5) ; $88B5
+
+BR_88AE:
+88AE   FD 0A                      POP  X
+88B0   FD 2A                      POP  U
+88B2   FD 1A                      POP  Y
+88B4   9A                         RTN
+
+JMP_88B5:
+88B5   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+88BA   EF 77 4E FF                ADI  (STRING_VARS + $FE),$FF
+88BE   9A                         RTN
+
+JMP_88BF:
+88BF   04                         LDA  XL
+88C0   FB                         SEC
+88C1   A1 70 01                   SBC  (SHADOW_RAM + $01)
+88C4   0A                         STA  XL
+88C5   84                         LDA  XH
+88C6   A1 70 00                   SBC  (SHADOW_RAM)
+88C9   08                         STA  XH
+88CA   6A 01                      LDI  UL,$01
+
+BR_88CC:
+88CC   60                         INC  UL
+88CD   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+88D1   4C 00                      CPI  XH,$00
+88D3   89 05                      BZR  BR_88DA ; $88DA
+88D5   06                         CPA  XL
+88D6   8B 02                      BZS  BR_88DA ; $88DA
+88D8   83 0B                      BCS  BR_88E5 ; $88E5
+
+BR_88DA:
+88DA   28                         STA  UH
+88DB   04                         LDA  XL
+88DC   FB                         SEC
+88DD   A0                         SBC  UH
+88DE   0A                         STA  XL
+88DF   84                         LDA  XH
+88E0   B1 00                      SBI  A,$00
+88E2   08                         STA  XH
+88E3   9E 19                      BCH  BR_88CC ; $88CC
+
+BR_88E5:
+88E5   24                         LDA  UL
+88E6   FD AE 77 D2                STA  #(STRING_VARS + $182)
+88EA   9A                         RTN
+
+BR_88EB:
+88EB   FD A5 77 D8                LDA  #(STRING_VARS + $188)
+88EF   B7 01                      CPI  A,$01
+88F1   89 05                      BZR  BR_88F8 ; $88F8
+88F3   A5 77 4E                   LDA  (STRING_VARS + $FE)
+88F6   8E 04                      BCH  BR_88FC ; $88FC
+
+BR_88F8:
+88F8   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+
+BR_88FC:
+88FC   9A                         RTN
+
+JMP_88FD:
+88FD   68 33                      LDI  UH,$33
+88FF   B5 10                      LDI  A,$10
+8901   A9 76 4E                   AND  (DISP_BUFF + $4E)
+8904   B7 10                      CPI  A,$10
+8906   89 01                      BZR  BR_8909 ; $8909
+8908   9A                         RTN
+
+BR_8909:
+8909   FD 62                      DEC  UH
+890B   B5 20                      LDI  A,$20
+890D   A9 76 4E                   AND  (DISP_BUFF + $4E)
+8910   B7 20                      CPI  A,$20
+8912   89 01                      BZR  BR_8915 ; $8915
+8914   9A                         RTN
+
+BR_8915:
+8915   FD 62                      DEC  UH
+8917   B5 40                      LDI  A,$40
+8919   A9 76 4E                   AND  (DISP_BUFF + $4E)
+891C   B7 40                      CPI  A,$40
+891E   89 06                      BZR  BR_8926 ; $8926
+8920   FD E9 77 DF 00             ANI  #(STRING_VARS + $18F),$00
+8925   9A                         RTN
+
+BR_8926:
+8926   68 0D                      LDI  UH,$0D
+8928   9A                         RTN
+
+BR_8929:
+8929   FD E9 77 DF 00             ANI  #(STRING_VARS + $18F),$00
+892E   A5 76 4F                   LDA  (DISP_BUFF + $4F)
+8931   BF 10                      BII  A,$10
+8933   8B 19                      BZS  BR_894E ; $894E
+8935   A5 78 80                   LDA  (DISPARAM)
+8938   B9 01                      ANI  A,$01
+893A   B7 01                      CPI  A,$01
+893C   8B 02                      BZS  BR_8940 ; $8940
+893E   FB                         SEC
+893F   9A                         RTN
+
+BR_8940:
+8940   A5 78 80                   LDA  (DISPARAM)
+8943   B9 01                      ANI  A,$01
+8945   B7 01                      CPI  A,$01
+8947   89 05                      BZR  BR_894E ; $894E
+8949   BE 84 66                   SJP  (BR_8466) ; $8466
+894C   F9                         REC
+894D   9A                         RTN
+
+BR_894E:
+894E   A5 78 80                   LDA  (DISPARAM)
+8951   B9 01                      ANI  A,$01
+8953   B7 00                      CPI  A,$00
+8955   89 02                      BZR  BR_8959 ; $8959
+8957   FB                         SEC
+8958   9A                         RTN
+
+BR_8959:
+8959   BE 8C 57                   SJP  (JMP_8C57) ; $8C57
+895C   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+8961   F9                         REC
+8962   9A                         RTN
+
+JMP_8963:
+8963   FD C8                      PSH  A
+8965   B5 0A                      LDI  A,$0A
+8967   FD AE 78 00                STA  #(CPU_STACK)
+896B   B5 20                      LDI  A,$20
+896D   FD AE 78 01                STA  #(CPU_STACK + $01)
+8971   FD 8A                      POP  A
+8973   9A                         RTN
+
+
+;------------------------------------------------------------------------------------------------------------
+; CLS - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_CLS START
+CLS: ; $8974
+8974   FD 98                      PSH  Y
+8976   BE 8D 41                   SJP  (JMP_8D41); $8D41
+8979   FD E9 77 D3 00             ANI  #(STRING_VARS + $183),$00 ; $77D3
+897E   FD 1A                      POP  Y
+8980   E2                         VEJ  (E2)
+
+8981   BE DF B4                   SJP  ($DFB4)
+8984   D0 00 19                   VEJ  (D0) \ ABYT($00) \ ABRF(BR_89A0) ; $89A0
+8987   6C 00                      CPI  UH,$00
+8989   8B 04                      BZS  BR_898F ; $898F
+898B   A4                         LDA  UH
+898C   BE 89 A1                   SJP  (BR_8981) ; $89A1
+
+BR_898F:
+898F   24                         LDA  UL
+8990   BE 89 A1                   SJP  (BR_8981) ; $89A1
+8993   6A 04                      LDI  UL,$04
+8995   6C 00                      CPI  UH,$00
+8997   89 02                      BZR  BR_899B ; $899B
+8999   6A 02                      LDI  UL,$02
+
+BR_899B:
+899B   BE DF C5                   SJP  ($DFC5) ; ARX2STRBUF+1
+899E   68 00                      LDI  UH,$00
+
+BR_89A0: 
+89A0   9A                         RTN
+
+BR_8981:
+89A1   FD C8                      PSH  A
+89A3   F1                         AEX
+89A4   BE 89 A9                   SJP  (BR_89A9) ; $89A9
+89A7   FD 8A                      POP  A
+
+BR_89A9:
+89A9   B9 0F                      ANI  A,$0F
+89AB   BB 30                      ORI  A,$30
+89AD   B7 3A                      CPI  A,$3A
+89AF   81 02                      BCR  BR_89B3 ; $89B3
+89B1   B3 06                      ADI  A,$06
+
+BR_89B3: 
+89B3   51                         SIN  Y
+89B4   9A                         RTN
+;% LB_CLS END
+
+
+;------------------------------------------------------------------------------------------------------------
+; CONSOLE - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_CONSOLE START
+CONSOLE:
+89B5   15                         LDA  (Y)
+89B6   B7 49                      CPI  A,$49
+89B8   89 0A                      BZR  BR_89C4 ; $89C4
+89BA   FD EB 77 F4 02             ORI  #(STRING_VARS + $1A4),$02
+89BF   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+89C2   54                         INC  Y
+89C3   E2                         VEJ  (E2)
+
+BR_89C4:
+89C4   B7 4E                      CPI  A,$4E
+89C6   89 0A                      BZR  BR_89D2 ; $89D2
+89C8   FD E9 77 F4 05             ANI  #(STRING_VARS + $1A4),$05
+89CD   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+89D0   54                         INC  Y
+89D1   E2                         VEJ  (E2)
+
+BR_89D2:
+89D2   DE 74                      VEJ  (DE) \ ABRF(BR_8A48) ; $8A48
+89D4   D0 06 71                   VEJ  (D0) \ ABYT($06) \ ABRF(BR_8A48 ) ; $8A48
+89D7   24                         LDA  UL
+89D8   B7 01                      CPI  A,$01
+89DA   89 09                      BZR  BR_89E5 ; $89E5
+89DC   FD E9 77 F4 03             ANI  #(STRING_VARS + $1A4),$03
+89E1   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+89E4   E2                         VEJ  (E2)
+
+BR_89E5:
+89E5   B7 02                      CPI  A,$02
+89E7   89 09                      BZR  BR_89F2 ; $89F2
+89E9   FD EB 77 F4 04             ORI  #(STRING_VARS + $1A4),$04
+89EE   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+89F1   E2                         VEJ  (E2)
+
+BR_89F2:
+89F2   B7 00                      CPI  A,$00
+89F4   89 11                      BZR   ; $8A07
+89F6   FD E9 77 F4 00             ANI  #(STRING_VARS + $1A4),$00
+89FB   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+89FE   48 8E                      LDI  XH,$8E
+8A00   4A A1                      LDI  XL,$A1
+8A02   BE 8D A8                   SJP  (JMP_8DA8) ; $8DA8
+8A05   9E 93                      BCH  CLS
+
+BR_8A07:
+8A07   24                         LDA  UL
+8A08   B7 50                      CPI  A,$50
+8A0A   8B 1B                      BZS  BR_8A27 ; $8A27
+8A0C   B7 28                      CPI  A,$28
+8A0E   89 36                      BZR  BR_8A46 ; $8A46
+8A10   FD EB 77 F4 01             ORI  #(STRING_VARS + $1A4),$01
+8A15   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+8A18   48 8E                      LDI  XH,$8E
+8A1A   4A 8F                      LDI  XL,$8F
+8A1C   BE 8D A8                   SJP  (JMP_8DA8) ; $8DA8
+8A1F   B5 28                      LDI  A,$28
+8A21   FD AE 77 D1                STA  #(STRING_VARS + $181)
+8A25   9E B3                      BCH  CLS
+
+BR_8A27:
+8A27   FD E9 77 F4 06             ANI  #(STRING_VARS + $1A4),$06
+8A2C   BE 8A 38                   SJP  (JMP_8A38) ; $8A38
+8A2F   48 8E                      LDI  XH,$8E
+8A31   4A A1                      LDI  XL,$A1
+8A33   BE 8D A8                   SJP  (JMP_8DA8) ; $8DA8
+8A36   9E C4                      BCH  CLS
+
+JMP_8A38:
+8A38   FD A5 77 F4                LDA  #(STRING_VARS + $1A4)
+8A3C   FD AE D4 00                STA  #($D400) ; ***
+8A40   9A                         RTN
+8A41   BE 8D A8                   SJP  (JMP_8DA8) $8DA8
+8A44   9E D2                      BCH  CLS
+
+BR_8A46:
+8A46   68 13                      LDI  UH,$13
+
+BR_8A48:
+8A48   E0                         VEJ  (E0)
+;% LB_CLS END
+
+
+;------------------------------------------------------------------------------------------------------------
+; CURSOR - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_CURSOR START
+CURSOR:
+8A49   DE 3F                      VEJ  (DE) \ ABRF(BR_8A8A) ; $8A8A
+8A4B   D0 0C 3C                   VEJ  (D0) \ ABYT($0C) \ ABRF(BR_8A8A) ; $8A8A
+8A4E   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+8A52   DF                         DEC  A
+8A53   26                         CPA  UL
+8A54   81 03                      BCR  BR_8A59 ; $8A59
+8A56   BA 8A 5D                   JMP  JMP_8A5D ; $8A5D
+
+BR_8A59:
+8A59   68 13                      LDI  UH,$13
+8A5B   8E 2D                      BCH  BR_8A8A ; $8A8A
+
+JMP_8A5D:
+8A5D   24                         LDA  UL
+8A5E   DD                         INC  A
+8A5F   FD C8                      PSH  A
+8A61   C2 2C 11                   VEJ  (C2) \ ACHR($2C) \ ABRF(BR_8A75) ; $8A75
+8A64   DE 24                      VEJ  (DE) \ ABRF(BR_8A8A) ; $8A8A
+8A66   D0 10 1F                   VEJ  (D0) \ ABYT($10) \ ABRF(BR_8A88) ; $8A88
+8A69   24                         LDA  UL
+8A6A   DD                         INC  A
+8A6B   2A                         STA  UL
+8A6C   B7 1A                      CPI  A,$1A
+8A6E   89 03                      BZR  BR_8A73 ; $8A73
+8A70   68 13                      LDI  UH,$13
+8A72   E0                         VEJ  (E0)
+
+BR_8A73:
+8A73   8E 09                      BCH  BR_8A7E ; $8A7E
+
+BR_8A75:
+8A75   56                         DEC  Y
+8A76   FD C8                      PSH  A
+8A78   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8A7B   2A                         STA  UL
+8A7C   FD 8A                      POP  A
+
+BR_8A7E:
+8A7E   24                         LDA  UL
+8A7F   AE 77 4E                   STA  (STRING_VARS + $FE)
+8A82   FD 8A                      POP  A
+8A84   AE 77 4F                   STA  (STRING_VARS + $FF)
+8A87   E2                         VEJ  (E2)
+
+BR_8A88:
+8A88   FD 8A                      POP  A
+
+BR_8A8A:
+8A8A   E0                         VEJ  (E0)
+
+JMP_8A8B:
+8A8B   B5 60                      LDI  A,$60
+8A8D   AE 78 8F                   STA  ($788F) ; OUTBUF_PTR
+8A90   BE 8C 4A                   SJP  (JMP_8C4A) ; $8C4A
+8A93   FD EB 77 F3 01             ORI  #(STRING_VARS + $1A3),$01
+8A98   BE 89 63                   SJP  (JMP_8963) ; $8963
+8A9B   B5 00                      LDI  A,$00
+8A9D   6A 4F                      LDI  UL,$4F
+8A9F   48 7B                      LDI  XH,$7B
+8AA1   4A 60                      LDI  XL,$60
+
+BR_8AA3:
+8AA3   41                         SIN  X
+8AA4   88 03                      LOP  UL,BR_8AA3 ; $8AA3
+
+BR_8AA6:
+8AA6   C0                         VEJ  (C0)
+8AA7   6C F0                      CPI  UH,$F0
+8AA9   89 02                      BZR  BR_8AAD ; $8AAD
+8AAB   6E 85                      CPI  UL,$85
+
+BR_8AAD:
+8AAD   8B 03                      BZS  BR_8AB2 ; $8AB2
+8AAF   C6                         VEJ  (C6)
+8AB0   8E 04                      BCH  BR_8AB6 ; $8AB6
+
+BR_8AB2:
+8AB2   CD 9A                      VMJ  ($9A)($4D)
+8AB4   C3 E0                      VCS  ($E0)
+
+BR_8AB6:
+8AB6   15                         LDA  (Y)
+8AB7   B7 0D                      CPI  A,$0D
+8AB9   8B E3                      BZS  BR_89DE ; $8B9E
+
+BR_8ABB:
+8ABB   15                         LDA  (Y)
+8ABC   B7 3A                      CPI  A,$3A
+8ABE   8B DE                      BZS  BR_89DE ; $8B9E
+8AC0   CD 2E 02                   VMJ  ($2E) \ ABRF(BR_8AC5) ; $8AC5
+8AC3   8E 03                      BCH  BR_8AC8 ; $8AC8
+
+BR_8AC5:
+8AC5   BA 8C 38                   JMP  JMP_8C38 ; $8C38
+
+BR_8AC8:
+8AC8   A5 7A 04                   LDA  (ARX + $04)
+8ACB   B7 C1                      CPI  A,$C1
+8ACD   8B 58                      BZS  BR_8B27: ; $8B27
+8ACF   B7 D0                      CPI  A,$D0
+8AD1   8B 54                      BZS  BR_8B27: ; $8B27
+8AD3   A5 78 95                   LDA  (USINGF)
+8AD6   B7 00                      CPI  A,$00
+8AD8   89 1D                      BZR  BR_8AF7 ; $8AF7
+8ADA   B5 10                      LDI  A,$10
+8ADC   AE 78 94                   STA  (STR_BUF_PTR_L)
+8ADF   FD 98                      PSH  Y
+8AE1   BE D9 CF                   SJP  (BCMD_STR)
+8AE4   FD 1A                      POP  Y
+8AE6   6C 00                      CPI  UH,$00
+8AE8   99 25                      BZR  BR_8AC5 ; $8AC5
+8AEA   A5 7A 01                   LDA  (ARX + $01)
+8AED   B7 00                      CPI  A,$00
+8AEF   89 04                      BZR  BR_8AF5: ; $8AF5
+8AF1   EF 78 8F 01                ADI  ($788F),$01 ; OUTBUF_PTR
+
+BR_8AF5:
+8AF5   8E 30                      BCH  BR_8B27: ; $8B27
+
+BR_8AF7:
+8AF7   FD 98                      PSH  Y
+8AF9   D2 00 80                   VEJ  (D2) \ ABRF(BR_8AFC) \ ABYT($80)
+
+BR_8AFC:
+8AFC   CD 96                      VMJ  ($96)($4B)
+8AFE   14                         LDA  YL
+8AFF   F9                         REC
+8B00   00                         SBC  XL
+8B01   2A                         STA  UL
+
+BR_8B02:
+8B02   45                         LIN  X
+8B03   B7 20                      CPI  A,$20
+8B05   89 05                      BZR  BR_8B0C ; $8B0C
+8B07   88 07                      LOP  UL,BR_8B02 ; $8B02
+8B09   68 01                      LDI  UH,$01
+8B0B   E0                         VEJ  (E0)
+
+BR_8B0C:
+8B0C   46                         DEC  X
+8B0D   A5 7A 01                   LDA  (ARX + $01)
+8B10   B7 80                      CPI  A,$80
+8B12   8B 01                      BZS  BR_8B15 ; $8B15
+8B14   46                         DEC  X
+
+BR_8B15:
+8B15   14                         LDA  YL
+8B16   FB                         SEC
+8B17   DD                         INC  A
+8B18   00                         SBC  XL
+8B19   DD                         INC  A
+8B1A   2A                         STA  UL
+8B1B   58 7A                      LDI  YH,$7A
+8B1D   5A 05                      LDI  YL,$05
+8B1F   84                         LDA  XH
+8B20   51                         SIN  Y
+8B21   04                         LDA  XL
+8B22   51                         SIN  Y
+8B23   24                         LDA  UL
+8B24   1E                         STA  (Y)
+8B25   FD 1A                      POP  Y
+
+BR_8B27:
+8B27   FD 98                      PSH  Y
+8B29   DC                         VEJ  (DC)
+8B2A   A5 78 97                   LDA  (USING_CHR)
+8B2D   B7 00                      CPI  A,$00
+8B2F   89 04                      BZR  BR_8B35 ; $8B35
+
+BR_8B31:
+8B31   FD C8                      PSH  A
+8B33   8E 1D                      BCH  BR_8B52 ; $8B52
+
+BR_8B35:
+8B35   FD C8                      PSH  A
+8B37   A5 7A 04                   LDA  (ARX + $04)
+8B3A   B7 D0                      CPI  A,$D0
+8B3C   8B 06                      BZS  BR_8B44 ; $8B44
+8B3E   FD 8A                      POP  A
+8B40   B5 00                      LDI  A,$00
+8B42   9E 13                      BCH  BR_8B31 ; $8B31
+
+BR_8B44:
+8B44   FD 8A                      POP  A
+8B46   26                         CPA  UL
+8B47   83 05                      BCS  BR_8B4E ; $8B4E
+8B49   2A                         STA  UL
+8B4A   B5 00                      LDI  A,$00
+8B4C   9E 1D                      BCH  BR_8B31 ; $8B31
+
+BR_8B4E:
+8B4E   FB                         SEC
+8B4F   20                         SBC  UL
+8B50   FD C8                      PSH  A
+
+BR_8B52:
+8B52   CD 94                      VMJ  ($94)($4A)
+8B54   FD 8A                      POP  A
+8B56   B7 00                      CPI  A,$00
+8B58   8B 0F                      BZS  BR_8B69 ; $8B69
+8B5A   2A                         STA  UL
+8B5B   B5 20                      LDI  A,$20
+8B5D   62                         DEC  UL
+8B5E   6E 50                      CPI  UL,$50
+8B60   83 07                      BCS  BR_8B69 ; $8B69
+
+BR_8B62:
+8B62   5E B0                      CPI  YL,$B0
+8B64   83 03                      BCS  BR_8B69 ; $8B69
+8B66   51                         SIN  Y
+8B67   88 07                      LOP  UL,BR_8B62 ; $8B62
+
+BR_8B69:
+8B69   14                         LDA  YL
+8B6A   AE 78 8F                   STA  ($788F) ; OUTBUF_PTR
+8B6D   FD 1A                      POP  Y
+8B6F   55                         LIN  Y
+8B70   FD AE 77 D3                STA  #(STRING_VARS + $183)
+8B74   B7 3B                      CPI  A,$3B
+8B76   9B D2                      BZS  BR_8AA6 ; $8AA6
+8B78   B7 2C                      CPI  A,$2C
+8B7A   89 15                      BZR  BR_8B91 ; $8B91
+8B7C   B5 11                      LDI  A,$11
+8B7E   FB                         SEC
+8B7F   A1 7A 07                   SBC  (ARX + $07)
+8B82   B7 11                      CPI  A,$11
+8B84   81 02                      BCR  BR_8B88 ; $8B88
+8B86   B5 01                      LDI  A,$01
+
+BR_8B88:
+8B88   F9                         REC
+8B89   A3 78 8F                   ADC  ($788F) ; OUTBUF_PTR
+8B8C   AE 78 8F                   STA  ($788F) ; OUTBUF_PTR
+8B8F   9E D6                      BCH  BR_8ABB ; $8ABB
+
+BR_8B91:
+8B91   56                         DEC  Y
+8B92   B7 3A                      CPI  A,$3A
+8B94   8B 08                      BZS  BR_89DE ; $8B9E
+8B96   B7 0D                      CPI  A,$0D
+8B98   8B 04                      BZS  BR_89DE ; $8B9E
+8B9A   68 01                      LDI  UH,$01
+8B9C   8E 9A                      BCH  JMP_8C38 ; $8C38
+
+BR_89DE:
+8B9E   FD 98                      PSH  Y
+8BA0   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8BA3   B7 19                      CPI  A,$19
+8BA5   81 03                      BCR  BR_8BAA ; $8BAA
+8BA7   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+
+BR_8BAA:
+8BAA   18                         STA  YH
+8BAB   A5 77 4F                   LDA  (STRING_VARS + $FF)
+8BAE   1A                         STA  YL
+8BAF   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+8BB2   48 7B                      LDI  XH,$7B
+8BB4   4A 60                      LDI  XL,$60
+8BB6   A5 78 8F                   LDA  ($788F) ; OUTBUF_PTR
+8BB9   F9                         REC
+8BBA   B1 60                      SBI  A,$60
+8BBC   83 01                      BCS  BR_8BBF ; $8BBF
+8BBE   DD                         INC  A
+
+BR_8BBF:
+8BBF   2A                         STA  UL
+
+BR_8BC0:
+8BC0   45                         LIN  X
+8BC1   FD 1E                      STA  #(Y)
+8BC3   54                         INC  Y
+8BC4   EF 77 4F 01                ADI  (STRING_VARS + $FF),$01
+8BC8   A5 77 4F                   LDA  (STRING_VARS + $FF)
+8BCB   FD A7 77 D1                CPA  #(STRING_VARS + $181)
+8BCF   81 2B                      BCR  BR_8BFC ; $8BFC
+8BD1   8B 29                      BZS  BR_8BFC ; $8BFC
+8BD3   E9 77 4F 01                ANI  (STRING_VARS + $FF),$01
+8BD7   EF 77 4E 01                ADI  (STRING_VARS + $FE),$01
+8BDB   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8BDE   B7 1A                      CPI  A,$1A
+8BE0   81 1A                      BCR  BR_8BFC ; $8BFC
+8BE2   6E 00                      CPI  UL,$00
+8BE4   8B 16                      BZS  BR_8BFC ; $8BFC
+8BE6   FD 88                      PSH  X
+8BE8   FD A8                      PSH  U
+8BEA   BE 84 D7                   SJP  (JMP_84D7) ; $84D7
+8BED   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8BF0   18                         STA  YH
+8BF1   A5 77 4F                   LDA  (STRING_VARS + $FF)
+8BF4   1A                         STA  YL
+8BF5   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+8BF8   FD 2A                      POP  U
+8BFA   FD 0A                      POP  X
+
+BR_8BFC;
+8BFC   88 3E                      LOP  UL,BR_8BC0 ; $8BC0
+8BFE   FD 18                      LDX  Y
+8C00   46                         DEC  X
+8C01   FD 1A                      POP  Y
+8C03   56                         DEC  Y
+8C04   55                         LIN  Y
+8C05   B7 3B                      CPI  A,$3B
+8C07   8B 0E                      BZS  BR_8C17 ; $8C17
+8C09   B5 01                      LDI  A,$01
+8C0B   A7 77 4F                   CPA  (STRING_VARS + $FF)
+8C0E   8B 07                      BZS  BR_8C17 ; $8C17
+8C10   AE 77 4F                   STA  (STRING_VARS + $FF)
+8C13   EF 77 4E 01                ADI  (STRING_VARS + $FE),$01
+
+BR_8C17:
+8C17   BE 88 BF                   SJP  (JMP_88BF) ; $88BF
+8C1A   68 00                      LDI  UH,$00
+8C1C   FD E9 77 D3 00             ANI  #(STRING_VARS + $183),$00
+8C21   D8                         VEJ  (D8)
+8C22   89 05                      BZR  BR_8C29 ; $8C29
+8C24   B5 03                      LDI  A,$03
+8C26   AE 78 71                   STA  (WAIT_CFG)
+
+BR_8C29:
+8C29   A5 78 71                   LDA  (WAIT_CFG)
+8C2C   B7 02                      CPI  A,$02
+8C2E   8B 0F                      BZS  BR_8C3F ; $8C3F
+8C30   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8C33   FD AE 77 D2                STA  #(STRING_VARS + $182)
+8C37   E2                         VEJ  (E2)
+
+JMP_8C38:
+8C38   B5 0D                      LDI  A,$0D
+8C3A   FD AE 77 D3                STA  #(STRING_VARS + $183)
+8C3E   E0                         VEJ  (E0)
+
+BR_8C3F:
+8C3F   A5 78 72                   LDA  (WAIT_CTR_H)
+8C42   28                         STA  UH
+8C43   A5 78 73                   LDA  (WAIT_CTR_L)
+8C46   2A                         STA  UL
+8C47   CD AC                      VMJ  ($AC)($56)
+8C49   E2                         VEJ  (E2)
+
+JMP_8C4A:
+8C4A   B5 0A                      LDI  A,$0A
+8C4C   FD AE 78 00                STA  #(CPU_STACK)
+8C50   B5 10                      LDI  A,$10
+8C52   FD AE 78 01                STA  #(CPU_STACK + $01)
+8C56   9A                         RTN
+
+JMP_8C57:
+8C57   A5 78 80                   LDA  (DISPARAM)
+8C5A   B9 01                      ANI  A,$01
+8C5C   B7 01                      CPI  A,$01
+8C5E   8B 02                      BZS  BR_8C62 ; $8C62
+8C60   F9                         REC
+8C61   9A                         RTN
+
+BR_8C62:
+8C62   CD 38                      VMJ  ($38)
+8C64   68 02                      LDI  UH,$02
+8C66   6A 19                      LDI  UL,$19
+8C68   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+8C6C   18                         STA  YH
+8C6D   5A 01                      LDI  YL,$01
+8C6F   BE 8D 6B                   SJP  (JMP_8D6B) ; $8D6B
+
+BR_8C72:
+8C72   BE 8D 64                   SJP  (JMP_8D64) ; $8D64
+8C75   FD 62                      DEC  UH
+8C77   83 07                      BCS  BR_8C80 ; $8C80
+8C79   FD EF 77 D2 01             ADI  #(STRING_VARS + $182),$01
+8C7E   FB                         SEC
+8C7F   9A                         RTN
+
+BR_8C80:
+8C80   B5 20                      LDI  A,$20
+8C82   FD 1E                      STA  #(Y)
+8C84   54                         INC  Y
+8C85   6A 19                      LDI  UL,$19
+8C87   9E 17                      BCH  BR_8C72 ; $8C72
+;% LB_CURSOR END
+
+
+;------------------------------------------------------------------------------------------------------------
+; INPUT - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_INPUT START
+INPUT:
+8C89   C2 23 03                   VEJ  (C2) \ ACHR($23) \ ABRF(BR_8C8F) ; $8C8F
+8C8C   BA C8 FD                   JMP  BCMD_CLEAR+4 ; $C8FD
+
+BR_8C8F:
+8C8F   D8                         VEJ  (D8)
+8C90   89 03                      BZR  BR_8C95 ; $8C95
+8C92   68 1A                      LDI  UH,$1A
+8C94   E0                         VEJ  (E0)
+
+BR_8C95:
+8C95   C6                         VEJ  (C6)
+8C96   BE D0 34                   SJP  (INBUF_CLR)
+8C99   C2 22 5F                   VEJ  (C2) \ ACHR($22) \ ABRF(BR_8CFB) ; $8CFB
+8C9C   CD 0C                      VMJ  ($0C)
+8C9E   FD 98                      PSH  Y
+8CA0   5A B0                      LDI  YL,$B0
+8CA2   58 7B                      LDI  YH,$7B
+8CA4   FD C8                      PSH  A
+8CA6   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8CA9   FD AE 77 D2                STA  #(STRING_VARS + $182)
+8CAD   FD 8A                      POP  A
+8CAF   EF 77 4E 01                ADI  (STRING_VARS + $FE),$01
+8CB3   A5 7A 07                   LDA  (ARX + $07)
+8CB6   2A                         STA  UL
+8CB7   BE D0 49                   SJP  (XREG2YREG)
+8CBA   14                         LDA  YL
+8CBB   AE 78 8B                   STA  (INBUFPTR_L)
+8CBE   FD 1A                      POP  Y
+8CC0   C2 3B 04                   VEJ  (C2) \ ACHR($3B) \ ABRF(BR_8CC7) ; $8CC7
+8CC3   B5 40                      LDI  A,$40
+8CC5   8E 0A                      BCH  $8CD1
+
+BR_8CC7:
+8CC7   C4 2C 4B                   VEJ  (C4) \ ACHR($2C) \ ABRF(BR_8D15) ; $8D15
+
+BR_8CCA:
+8CCA   B5 B0                      LDI  A,$B0
+8CCC   AE 78 8B                   STA  (INBUFPTR_L)
+8CCF   B5 00                      LDI  A,$00
+8CD1   AE 78 80                   STA  (DISPARAM)
+8CD4   CE 58 2E                   VEJ  (CE) \ ABYT($58) \ ABRF($8D05) ; ***
+8CD7   F6 78 86                   VEJ  (F6) \ AWRD(LASTVARADD_H)
+8CDA   44                         INC  X
+8CDB   A5 7A 07                   LDA  (ARX + $07)
+8CDE   0E                         STA  (X)
+8CDF   D4 A0                      VEJ  (D4) \ ABYT($A0)
+8CE1   D4 AC                      VEJ  (D4) \ ABYT($AC)
+8CE3   BE EF 67                   SJP  (PREPLCDOUT)
+8CE6   68 20                      LDI  UH,$20
+8CE8   C3 E0                      VCS  ($E0)
+8CEA   EB 78 8A 50                ORI  (BREAKPARAM),$50
+8CEE   A5 78 8B                   LDA  (INBUFPTR_L)
+8CF1   1A                         STA  YL
+8CF2   58 7B                      LDI  YH,$7B
+8CF4   E9 7B 0E 9F                ANI  (CURS_CTRL),$9F
+8CF8   BA 8D 18                   JMP  JMP_8D18 ; $8D18
+
+BR_8CFB:
+8CFB   FD C8                      PSH  A
+8CFD   A5 77 4E                   LDA  (STRING_VARS + $FE)
+8D00   FD AE 77 D2                STA  #(STRING_VARS + $182)
+8D04   FD 8A                      POP  A
+8D06   EF 77 4E 01                ADI  (STRING_VARS + $FE),$01
+8D0A   C6                         VEJ  (C6)
+8D0B   B5 3F                      LDI  A,$3F
+8D0D   AE 7B B0                   STA  (IN_BUF)
+8D10   9E 48                      BCH  BR_8CCA ; $8CCA
+8D12   68 07                      LDI  UH,$07
+8D14   E0                         VEJ  (E0)
+
+BR_8D15:
+8D15   BA C9 E3                   JMP  BCMD_DIM + &5B ; $C9E3
+
+JMP_8D18:
+8D18   BE E8 CA                   SJP  (PRGMDISP)
+8D1B   E9 78 9D 00                ANI  (CURR_LINE_L),$00
+8D1F   E9 78 9C 00                ANI  (CURR_LINE_H),$00
+8D23   E9 76 4E FE                ANI  (DISP_BUFF + $4E),$FE
+8D27   AA 78 4F                   LDI  S,(CPU_STACK + $4F)
+8D2A   BE E2 43                   SJP  (WAIT4KB)
+8D2D   FD ED 77 F3 01             BII  #(STRING_VARS + $1A3),$01
+8D32   89 05                      BZR  BR_8D39 ; $8D39
+8D34   FD EF 77 D2 FF             ADI  #(STRING_VARS + $182),$FF
+
+BR_8D39:
+8D39   FD E9 77 F3 00             ANI  #(STRING_VARS + $1A3),$00
+8D3E   BA CA 92                   JMP  $CA92 ; ***
+
+JMP_8D41:
+8D41   68 07                      LDI  UH,$07
+8D43   6A CF                      LDI  UL,$CF
+8D45   B5 00                      LDI  A,$00
+8D47   BE 8E 5F                   SJP  (JMP_8E5F); $8E5F
+8D4A   BE 8D 5E                   SJP  (BR_8D5E) ; $8D5E
+8D4D   FD 62                      DEC  UH
+8D4F   93 07                      BCS  $8D4A
+8D51   B5 01                      LDI  A,$01
+8D53   FD AE 77 D2                STA  #(STRING_VARS + $182)
+8D57   AE 77 4E                   STA  (STRING_VARS + $FE)
+8D5A   AE 77 4F                   STA  (STRING_VARS + $FF)
+8D5D   9A                         RTN
+
+BR_8D5E:
+8D5E   FD 1E                      STA  #(Y)
+8D60   54                         INC  Y
+8D61   88 05                      LOP  UL,BR_8D5E ; $8D5E
+8D63   9A                         RTN
+
+JMP_8D64:
+8D64   45                         LIN  X
+8D65   FD 1E                      STA  #(Y)
+8D67   54                         INC  Y
+8D68   88 06                      LOP  UL,JMP_8D64 ; $8D64
+8D6A   9A                         RTN
+
+JMP_8D6B:
+8D6B   FD C8                      PSH  A
+8D6D   FD 88                      PSH  X
+8D6F   FD A8                      PSH  U
+8D71   FD 18                      LDX  Y
+8D73   FD 42                      DEC  XH
+8D75   42                         DEC  XL
+8D76   BE 8E 5F                   SJP  (JMP_8E5F) ; $8E5F
+8D79   14                         LDA  YL
+8D7A   FB                         SEC
+8D7B   B1 50                      SBI  A,$50
+8D7D   1A                         STA  YL
+8D7E   94                         LDA  YH
+8D7F   B1 00                      SBI  A,$00
+8D81   18                         STA  YH
+8D82   4C 19                      CPI  XH,$19
+8D84   83 1D                      BCS  BR_8DA3 ; $8DA3
+8D86   4E 50                      CPI  XL,$50
+8D88   83 19                      BCS  BR_8DA3 ; $8DA3
+8D8A   84                         LDA  XH
+8D8B   2A                         STA  UL
+8D8C   FD A5 77 D1                LDA  #(STRING_VARS + $181)
+8D90   B7 28                      CPI  A,$28
+8D92   89 01                      BZR  BR_8D95 ; $8D95
+8D94   60                         INC  UL
+
+BR_8D95:
+8D95   FD DA                      ADR  Y
+8D97   88 04                      LOP  UL,BR_8D95 ; $8D95
+8D99   04                         LDA  XL
+8D9A   FD DA                      ADR  Y
+
+BR_89DC:
+8D9C   FD 2A                      POP  U
+8D9E   FD 0A                      POP  X
+8DA0   FD 8A                      POP  A
+8DA2   9A                         RTN
+
+BR_8DA3:
+8DA3   BE 8E 5F                   SJP  (JMP_8E5F) ; $8E5F
+8DA6   9E 0C                      BCH  BR_89DC ; $8D9C
+
+JMP_8DA8:
+8DA8   68 00                      LDI  UH,$00
+8DAA   6A 11                      LDI  UL,$11
+
+BR_8DAC:
+8DAC   A4                         LDA  UH
+8DAD   FD AE 78 00                STA  #(CPU_STACK)
+8DB1   45                         LIN  X
+8DB2   FD AE 78 01                STA  #(CPU_STACK + $01)
+8DB6   FD 60                      INC  UH
+8DB8   88 0E                      LOP  UL,BR_8DAC ; $8DAC
+8DBA   B5 50                      LDI  A,$50
+8DBC   FD AE 77 D1                STA  #(STRING_VARS + $181)
+8DC0   9A                         RTN
+8DC1   FD 88                      PSH  X
+8DC3   FD 98                      PSH  Y
+8DC5   FD A8                      PSH  U
+8DC7   A5 E2 B7                   LDA  ($E2B7) ; WAIT4K
+8DCA   B7 CC                      CPI  A,$CC
+8DCC   89 02                      BZR  BR_8DDC ; $8DD0
+8DCE   8E 33                      BCH  BR_8E03 ; $8E03
+
+BR_8DDC:
+8DD0   4A 1A                      LDI  XL,$1A
+8DD2   68 93                      LDI  UH,$93
+8DD4   6A 6D                      LDI  UL,$6D
+8DD6   BE ED 3B                   SJP  (TEXTUREG_XL)
+8DD9   BE E6 69                   SJP  (BCMD_BEEP_STD)
+8DDC   8E 0C                      BCH  BR_8DEA ; $8DEA
+
+BR_8DDE:
+8DDE   4A 1A                      LDI  XL,$1A
+8DE0   68 93                      LDI  UH,$93
+8DE2   6A 6D                      LDI  UL,$6D
+8DE4   BE ED 3B                   SJP  (TEXTUREG_XL)
+8DE7   BE E6 69                   SJP  (BCMD_BEEP_STD)
+
+BR_8DEA:
+8DEA   BE E2 43                   SJP  (WAIT4KB)
+8DED   B7 0E                      CPI  A,$0E
+8DEF   8B 03                      BZS  BR_8DF4 ; $8DF4
+8DF1   BA 8D F8                   JMP  BR_8DF8 ; $8DF8
+
+BR_8DF4:
+8DF4   91 18                      BCR  BR_8DDE ; $8DDE
+8DF6   8E 02                      BCH  BR_8DFA ; $8DFA
+
+BR_8DF8:
+8DF8   93 1C                      BCS  BR_8DDE ; $8DDE
+
+BR_8DFA:
+8DFA   FD 2A                      POP  U
+8DFC   FD 1A                      POP  Y
+8DFE   FD 0A                      POP  X
+8E00   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+
+BR_8E03:
+8E03   B5 00                      LDI  A,$00
+8E05   AE 78 5D                   STA  (KATAFLAGS)
+8E08   FD AE D4 00                STA  #($D400) ; ***
+8E0C   FD AE 77 F4                STA  #(STRING_VARS + $1A4)
+8E10   BE 8D 41                   SJP  (JMP_8D41) ; $8D41
+8E13   B5 0F                      LDI  A,$0F
+8E15   BE 90 6A                   SJP  (JMP_906A) ; $906A
+8E18   B5 00                      LDI  A,$00
+8E1A   BE 91 1A                   SJP  (JMP_911A) ; $911A
+8E1D   B5 55                      LDI  A,$55
+8E1F   AE 79 D5                   STA  ($79D5) ; ***
+8E22   B5 01                      LDI  A,$01
+8E24   FD AE 77 D9                STA  #(STRING_VARS + $189)
+8E28   48 8E                      LDI  XH,$8E
+8E2A   4A A1                      LDI  XL,$A1
+8E2C   BE 8D A8                   SJP  (JMP_8DA8) ; $8DA8
+8E2F   B5 80                      LDI  A,$80
+8E31   FD AE 77 DA                STA  #(STRING_VARS + $18A)
+8E35   B5 07                      LDI  A,$07
+8E37   FD AE 77 DB                STA  #(STRING_VARS + $18B)
+8E3B   E9 79 D4 00                ANI  ($79D4),$00 ; ***
+8E3F   B5 81                      LDI  A,$81
+8E41   AE 78 5B                   STA  ($785B) ; XCHRINPT_H ***
+8E44   B5 9E                      LDI  A,$9E
+8E46   AE 78 5C                   STA  ($785C) ; XCHRINPT_L ***
+8E49   FD E9 77 D7 00             ANI  #(STRING_VARS + $187),$00
+8E4E   FD E9 77 D8 00             ANI  #(STRING_VARS + $188),$00
+8E53   B5 55                      LDI  A,$55
+8E55   AE 79 D4                   STA  ($79D4) ; ***
+8E58   FD 2A                      POP  U
+8E5A   FD 1A                      POP  Y
+8E5C   FD 0A                      POP  X
+8E5E   9A                         RTN
+
+JMP_8E5F:
+8E5F   58 70                      LDI  YH,$70
+8E61   5A 00                      LDI  YL,$00
+8E63   9A                         RTN
+
+8E64   FD 98                      PSH  Y
+8E66   BE 8E 86                   SJP  (JMP_8E86) ; $8E86
+8E69   B5 00                      LDI  A,$00
+8E6B   8E 0B                      BCH  BR_8E78 ; $8E78
+8E6D   FD 98                      PSH  Y
+8E6F   BE 8E 86                   SJP  (JMP_8E86) ; $8E86
+8E72   F9                         REC
+8E73   B3 08                      ADI  A,$08
+8E75   18                         STA  YH
+8E76   B5 F0                      LDI  A,$F0
+
+BR_8E78:
+8E78   68 07                      LDI  UH,$07
+8E7A   6A FF                      LDI  UL,$FF
+
+BR_8E7C:
+8E7C   BE 8D 5E                   SJP  (BR_8D5E) ; $8D5E
+8E7F   FD 62                      DEC  UH
+8E81   93 07                      BCS  BR_8E7C ; $8E7C
+8E83   FD 1A                      POP  Y
+8E85   9A                         RTN
+
+JMP_8E86:
+8E86   BE 8E 5F                   SJP  (JMP_8E5F) ; $8E5F
+8E89   94                         LDA  YH
+8E8A   F1                         AEX
+8E8B   DF                         DEC  A
+8E8C   F1                         AEX
+8E8D   18                         STA  YH
+8E8E   9A                         RTN
+
+8E8F   3B                         ORA  (V)
+8E90   28                         STA  UH
+8E91   30                         SBC  VL
+8E92   74                         INC  V
+8E93   1C                         DCS  (Y)
+8E94   00                         SBC  XL
+8E95   19                         AND  (Y)
+8E96   1A                         STA  YL
+8E97   00                         SBC  XL
+8E98   0A                         STA  XL
+8E99   68 00                      LDI  UH,$00
+8E9B   70                         INC  VL
+8E9C   00                         SBC  XL
+8E9D   00                         SBC  XL
+8E9E   00                         SBC  XL
+8E9F   00                         SBC  XL
+8EA0   00                         SBC  XL
+8EA1   74                         INC  V
+8EA2   50                         INC  YL
+8EA3   5C 35                      CPI  YH,$35
+8EA5   1C                         DCS  (Y)
+8EA6   00                         SBC  XL
+8EA7   19                         AND  (Y)
+8EA8   1A                         STA  YL
+8EA9   00                         SBC  XL
+8EAA   0A                         STA  XL
+8EAB   68 00                      LDI  UH,$00
+8EAD   70                         INC  VL
+8EAE   00                         SBC  XL
+8EAF   00                         SBC  XL
+8EB0   00                         SBC  XL
+8EB1   00                         SBC  XL
+8EB2   00                         SBC  XL
+8EB3   52                         DEC  YL
+8EB4   55                         LIN  Y
+8EB5   4E 50                      CPI  XL,$50
+8EB7   52                         DEC  YL
+8EB8   4F 52                      ADI  (X),$52
+8EBA   45                         LIN  X
+8EBB   53                         SDE  Y
+8EBC   45                         LIN  X
+8EBD   52                         DEC  YL
+8EBE   56                         DEC  Y
+8EBF   45                         LIN  X
+8EC0   20                         SBC  UL
+8EC1   45                         LIN  X
+8EC2   42                         DEC  XL
+8EC3   45                         LIN  X
+8EC4   4E 45                      CPI  XL,$45
+8EC6   3A                         STA  VL
+8EC7   28                         STA  UH
+8EC8   43                         SDE  X
+8EC9   29                         AND  (U)
+8ECA   20                         SBC  UL
+8ECB   62                         DEC  UL
+8ECC   79 20                      ANI  (V),$20
+8ECE   49 6E                      ANI  (X),$6E
+8ED0   67                         LDE  U
+8ED1   2E                         STA  (U)
+8ED2   42                         DEC  XL
+8ED3   75                         LIN  V
+8ED4   65                         LIN  U
+8ED5   72                         DEC  VL
+8ED6   6F 20                      ADI  (U),$20
+8ED8   57                         LDE  Y
+8ED9   2E                         STA  (U)
+8EDA   53                         SDE  Y
+8EDB   70                         INC  VL
+8EDC   65                         LIN  U
+8EDD   69 64                      ANI  (U),$64
+8EDF   65                         LIN  U
+8EE0   6C BA                      CPI  UH,$BA
+
+8EE2   92                         ADC  YH
+8EE3   D6 A5                      VEJ  (D6) \ ABYT($A5)
+
+8EE5   77                         LDE  V
+8EE6   4E DF                      CPI  XL,$DF
+8EE8   BA D9 E4                   JMP  $D9E4 ; BCMD_LEN $D9D7 + ***
+;% LB_INPUT END
+
+
+;------------------------------------------------------------------------------------------------------------
+; VPCURSOR - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_VPCURSOR START
+VPCURSOR: ; $8EEB
+8EEB   B5 10                      LDI  A,$10
+8EED   FD AE 78 00                STA  #(CPU_STACK)
+8EF1   FD A5 78 01                LDA  #(CPU_STACK + $01)
+8EF5   FD AE 77 F6                STA  #(STRING_VARS + $1A6)
+8EF9   DF                         DEC  A
+8EFA   BA D9 E4                   JMP  $D9E4 ; BCMD_LEN $D9D7 + ***
+;% LB_VPCURSOR END
+
+
+;------------------------------------------------------------------------------------------------------------
+; HCURSOR - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_HCURSOR START
+HCURSOR: ; $8EFD
+8EFD   A5 77 4F                   LDA  (STRING_VARS + $FF)
+8F00   DF                         DEC  A
+8F01   BA D9 E4                   JMP  $D9E4 ; BCMD_LEN $D9D7 + ***
+;% LB_HCURSOR END
+
+
+;------------------------------------------------------------------------------------------------------------
+; HPCURSOR - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_HPCURSOR START
+HPCURSOR: ; $8F04
+8F04   00                         SBC  XL
+8F05   11                         SBC  (Y)
+8F06   FD AE 78 00                STA  #(CPU_STACK)
+8F0A   FD A5 78 01                LDA  #(CPU_STACK + $01)
+8F0E   FD AE 77 F5                STA  #(STRING_VARS + $1A5)
+8F12   DF                         DEC  A
+8F13   BA D9 E4                   JMP  $D9E4 ; BCMD_LEN $D9D7 + ***
+;% LB_HPCURSOR END
+
+
+;------------------------------------------------------------------------------------------------------------
+; LIST - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_LIST START
+LIST: ; $8F16
+8F16   A5 76 4F                   LDA  (DISP_BUFF + $4F)
+8F19   B9 07                      ANI  A,$07
+8F1B   BB 20                      ORI  A,$20
+8F1D   AE 76 4F                   STA  (DISP_BUFF + $4F)
+8F20   15                         LDA  (Y)
+8F21   B7 0D                      CPI  A,$0D
+8F23   89 02                      BZR  BR_8F27 ; $8F27
+8F25   8E 1F                      BCH  BR_8F46 ; $8F46
+
+BR_8F27:
+8F27   B7 50                      CPI  A,$50
+8F29   89 08                      BZR  BR_8F33 ; $8F33
+8F2B   54                         INC  Y
+8F2C   15                         LDA  (Y)
+8F2D   B7 0D                      CPI  A,$0D
+8F2F   89 02                      BZR  BR_8F33 ; $8F33
+8F31   8E 21                      BCH  BR_8F54 ; $8F54
+
+BR_8F33:
+8F33   B7 56                      CPI  A,$56
+8F35   89 09                      BZR  BR_8F40 ; $8F40
+8F37   54                         INC  Y
+8F38   15                         LDA  (Y)
+8F39   B7 0D                      CPI  A,$0D
+8F3B   89 03                      BZR  BR_8F40 ; $8F40
+8F3D   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+
+BR_8F40:
+8F40   BA C9 6F                   JMP  BCMD_LIST + 1 ; $C96F
+8F43   BA 80 00                   JMP  B_TBL_8000 ; $8000
+
+BR_8F46:
+8F46   BE 90 8E                   SJP  (JMP_908E) ; $908E
+8F49   CC 61                      VEJ  (CC) \ ABYTL($7861) ; ROM_ST_H ***
+8F4B   B5 FF                      LDI  A,$FF
+8F4D   86                         CPA  XH
+8F4E   89 04                      BZR  BR_8F54 ; $8F54
+8F50   CC 65                      VEJ  (CC) \ ABYTL($7865) ; BASPRG_ST_H ***
+8F52   8E 02                      BCH  BR_8F56 ; $8F56
+
+BR_8F54:
+8F54   CC 69                      VEJ  (CC) \ ABYTL($7869)
+
+BR_8F56:
+8F56   05                         LDA  (X)
+8F57   B7 FF                      CPI  A,$FF
+8F59   89 01                      BZR  BR_8F5C ; $8F5C
+8F5B   E2                         VEJ  (E2)
+
+BR_8F5C:
+8F5C   B5 55                      LDI  A,$55
+8F5E   FD AE 77 D9                STA  #(STRING_VARS + $189)
+8F62   A5 78 71                   LDA  (WAIT_CFG)
+8F65   B7 00                      CPI  A,$00
+8F67   89 0D                      BZR  BR_8F76 ; $8F76
+8F69   B5 02                      LDI  A,$02
+8F6B   AE 78 71                   STA  (WAIT_CFG)
+8F6E   B5 00                      LDI  A,$00
+8F70   AE 78 72                   STA  (WAIT_CTR_H)
+8F73   AE 78 73                   STA  (WAIT_CTR_L)
+
+BR_8F76:
+8F76   B5 03                      LDI  A,$03
+8F78   FD CA                      ADR  X
+8F7A   CA A6                      VEJ  (CA) \ ABYTL($78A6) ; SRCH_ADD_H ***
+
+BR_8F7C:
+8F7C   46                         DEC  X
+8F7D   46                         DEC  X
+8F7E   BE D2 D0                   SJP  ($D2D0) ; XFRLINE2INBUF ***
+8F81   B5 14                      LDI  A,$14
+8F83   AE 78 80                   STA  (DISPARAM)
+8F86   BE E8 CA                   SJP  (PRGMDISP)
+8F89   B5 02                      LDI  A,$02
+8F8B   FD AE F0 0B                STA  #(PC1500_IF_REG)
+8F8F   BE 81 9E                   SJP  (JMP_819E) ; $819E
+8F92   F4 78 72                   VEJ  (F4) \ AWRD(WAIT_CTR_H)
+
+BR_8F95:
+8F95   FD A8                      PSH  U
+
+BR_8F97:
+8F97   38                         NOP
+8F98   38                         NOP
+8F99   88 04                      LOP  UL,BR_8F97 ; $8F97
+8F9B   FD 2A                      POP  U
+8F9D   88 0A                      LOP  UL,BR_8F95 ; $8F95
+8F9F   6C 00                      CPI  UH,$00
+8FA1   8B 04                      BZS  BR_8FA7 ; $8FA7
+8FA3   FD 62                      DEC  UH
+8FA5   9E 12                      BCH  BR_8F95 ; $8F95
+
+BR_8FA7:
+8FA7   BE E4 2C                   SJP  (KEY2ASCII)
+8FAA   B7 20                      CPI  A,$20
+8FAC   89 02                      BZR  BR_8FB0 ; $8FB0
+8FAE   9E 09                      BCH  BR_8FA7 ; $8FA7
+
+BR_8FB0:
+8FB0   BE E4 2C                   SJP  (KEY2ASCII)
+8FB3   B7 0B                      CPI  A,$0B
+8FB5   89 08                      BZR  BR_8FBF ; $8FBF
+8FB7   B5 99                      LDI  A,$99
+8FB9   FD AE 77 D9                STA  #(STRING_VARS + $189)
+8FBD   8E 51                      BCH  BR_9010 ; $9010
+
+BR_8FBF:
+8FBF   FD A5 F0 0A                LDA  #(PC1500_MSK_REG)
+8FC3   B9 20                      ANI  A,$20
+8FC5   B7 20                      CPI  A,$20
+8FC7   89 0E                      BZR  BR_8FD7 ; $8FD7
+8FC9   B5 00                      LDI  A,$00
+8FCB   AE 78 B5                   STA  (ERR_LINE_L)
+8FCE   FD E9 77 DF 00             ANI  #(STRING_VARS + $18F),$00
+8FD3   BE DC 32                   SJP  ($DC32) ; ***
+8FD6   E2                         VEJ  (E2)
+
+BR_8FD7:
+8FD7   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+8FDB   DD                         INC  A
+8FDC   FD AE 77 D2                STA  #(STRING_VARS + $182)
+8FE0   CC A6                      VEJ  (CC) \ ABYTL($78A6) ; SRCH_ADD_H ***
+8FE2   44                         INC  X
+8FE3   44                         INC  X
+8FE4   05                         LDA  (X)
+8FE5   FD CA                      ADR  X
+8FE7   44                         INC  X
+8FE8   47                         LDE  X
+8FE9   B7 FF                      CPI  A,$FF
+8FEB   89 02                      BZR  BR_8FEF ; $8FEF
+8FED   8E 21                      BCH  BR_9010 ; $9010
+
+BR_8FEF:
+8FEF   CA A6                      VEJ  (CA) \ ABYTL($78A6)
+8FF1   B5 04                      LDI  A,$04
+8FF3   FD CA                      ADR  X
+8FF5   FD 5A                      STX  Y
+8FF7   FD A5 77 D9                LDA  #(STRING_VARS + $189)
+8FFB   B7 55                      CPI  A,$55
+8FFD   89 0F                      BZR  BR_900E ; $900E
+8FFF   B5 00                      LDI  A,$00
+9001   FD AE 77 D9                STA  #(STRING_VARS + $189)
+9005   FD A5 77 D2                LDA  #(STRING_VARS + $182)
+9009   DF                         DEC  A
+900A   FD AE 77 D2                STA  #(STRING_VARS + $182)
+
+BR_900E:
+900E   9E 94                      BCH  BR_8F7C ; $8F7C
+
+BR_9010:
+9010   CC A6                      VEJ  (CC) \ ABYTL($78A6) ; SRCH_ADD_H ***
+9012   B5 04                      LDI  A,$04
+9014   FD CA                      ADR  X
+9016   FD 5A                      STX  Y
+9018   CA B2                      VEJ  (CA) \ ABYTL($78B2) ; ERR_ADD_H ***
+901A   B5 01                      LDI  A,$01
+901C   AE 78 B5                   STA  (ERR_LINE_L)
+901F   BE DC 32                   SJP  ($DC32) ; ***
+9022   E2                         VEJ  (E2)
+;% LB_LIST END
+
+
+;------------------------------------------------------------------------------------------------------------
+; BACKGR - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_BACKGR START
+BACKGR:
+9023   DE 5C                      VEJ  (DE) \ ABRF(BR_9081) ; $9081
+9025   D0 10 59                   VEJ  (D0) \ ABYT($10) \ ABRF(BR_9081) ; $9081
+9028   B7 10                      CPI  A,$10
+902A   81 03                      BCR  BR_902F ; $902F
+902C   68 13                      LDI  UH,$13
+902E   E0                         VEJ  (E0)
+
+BR_902F:
+902F   24                         LDA  UL
+9030   F1                         AEX
+9031   FD AE 77 DD                STA  #(STRING_VARS + $18D)
+9035   C0                         VEJ  (C0)
+9036   6E 0D                      CPI  UL,$0D
+9038   89 0B                      BZR  BR_9045 ; $9045
+903A   FD A5 77 DD                LDA  #(STRING_VARS + $18D)
+903E   B7 0A                      CPI  A,$0A
+9040   BB 0F                      ORI  A,$0F
+9042   2A                         STA  UL
+9043   8E 20                      BCH  BR_9065 ; $9065
+
+BR_9045:
+9045   B7 2C                      CPI  A,$2C
+9047   89 1B                      BZR  BR_9064 ; $9064
+9049   DE 36                      VEJ  (DE) \ ABRF(BR_9081) ; $9081
+904B   D0 10 33                   VEJ  (D0) \ ABYT($10) \ ABRF(BR_9081) ; $9081
+904E   B7 10                      CPI  A,$10
+9050   81 03                      BCR  BR_9055 ; $9055
+9052   68 13                      LDI  UH,$13
+9054   E0                         VEJ  (E0)
+
+BR_9055:
+9055   FD AE 77 DE                STA  #(STRING_VARS + $18E)
+9059   FD AB 77 DD                ORA  #(STRING_VARS + $18D)
+905D   2A                         STA  UL
+905E   FD AE 77 DC                STA  #(STRING_VARS + $18C)
+9062   8E 01                      BCH  BR_9065 ; $9065
+
+BR_9064:
+9064   E4                         VEJ  (E4)
+
+BR_9065:
+9065   24                         LDA  UL
+9066   BE 90 6A                   SJP  (JMP_906A) ; $906A
+9069   E2                         VEJ  (E2)
+
+JMP_906A:
+906A   48 60                      LDI  XH,$60
+906C   4A 00                      LDI  XL,$00
+906E   68 07                      LDI  UH,$07
+9070   6A D0                      LDI  UL,$D0
+
+BR_9072:
+9072   FD 0E                      STA  #(X)
+9074   44                         INC  X
+9075   66                         DEC  U
+9076   6C 00                      CPI  UH,$00
+9078   89 05                      BZR  BR_907F ; $907F
+907A   6E 00                      CPI  UL,$00
+907C   89 01                      BZR  BR_907F ; $907F
+907E   9A                         RTN
+
+BR_907F:
+907F   9E 0F                      BCH  BR_9072 ; $9072
+
+BR_9081:
+9081   E0                         VEJ  (E0)
+;% LB_BACKGR END
+
+
+;------------------------------------------------------------------------------------------------------------
+; ERN - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_ERN START
+ERN:
+9082   A5 78 9B                   LDA  (ERL)
+9085   BA D9 E4                   JMP  $D9E4 ; BCMD_LEN $D9D7
+;% LB_ERN END
+
+
+;------------------------------------------------------------------------------------------------------------
+; ERL - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_ERL START
+ERL:
+9088   F4 78 B4                   VEJ  (F4) \ AWRD(ERR_LINE_H)
+908B   BA DA 6C                   JMP  $DA6C ; BCMD_MEM $DA5D
+
+JMP_908E:
+908E   A5 78 60                   LDA  ($7860) ; ST_ROM_MOD ***
+9091   08                         STA  XH
+9092   B7 FF                      CPI  A,$FF
+9094   89 04                      BZR  BR_909A ; $909A
+9096   A5 78 63                   LDA  (RAM_ST_H)
+9099   08                         STA  XH
+
+BR_909A:
+909A   4A 00                      LDI  XL,$00
+909C   05                         LDA  (X)
+909D   B7 55                      CPI  A,$55
+909F   89 08                      BZR  BR_90A9 ; $90A9
+90A1   4A 07                      LDI  XL,$07
+90A3   05                         LDA  (X)
+90A4   B7 00                      CPI  A,$00
+90A6   89 01                      BZR  BR_90A9 ; $90A9
+90A8   E2                         VEJ  (E2)
+
+BR_90A9:
+90A9   9A                         RTN
+;% LB_ERL END
+
+
+;------------------------------------------------------------------------------------------------------------
+; SLEEP - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_ERL SLEEP
+SLEEP:
+90AA   94                         LDA  YH
+90AB   B7 7B                      CPI  A,$7B
+90AD   8B 04                      BZS  BR_90B3 ; $90B3
+90AF   BE E3 3F                   SJP  (AUTO_OFF)
+90B2   E2                         VEJ  (E2)
+
+BR_90B3:
+90B3   AA 78 4F                   LDI  S,(CPU_STACK + $4F)
+90B6   BE CF CC                   SJP  ($CFCC) ; ***
+90B9   BE D0 2B                   SJP  ($D02B) ; ***
+90BC   B5 3E                      LDI  A,$3E
+90BE   1E                         STA  (Y)
+90BF   E9 78 8A EF                ANI  (BREAKPARAM),$EF
+90C3   E9 76 4E FE                ANI  (DISP_BUFF + $4E),$FE
+90C7   B5 00                      LDI  A,$00
+90C9   AE 78 80                   STA  (DISPARAM)
+90CC   AE 78 9C                   STA  (CURR_LINE_H)
+90CF   AE 78 9D                   STA  (CURR_LINE_L)
+90D2   BE E8 CA                   SJP  (PRGMDISP)
+90D5   48 CA                      LDI  XH,$CA
+90D7   4A 92                      LDI  XL,$92
+90D9   FD 88                      PSH  X
+90DB   BA E3 3F                   JMP  AUTO_OFF ; $E33F
+
+JMP_90DE:
+90DE   FD C8                      PSH  A
+90E0   A5 79 D5                   LDA  ($79D5) ; ***
+90E3   B7 55                      CPI  A,$55
+90E5   89 07                      BZR  BR_90EE ; $90EE
+90E7   FD 8A                      POP  A
+90E9   EB 7B 0E 40                ORI  (CURS_CTRL),$40
+90ED   9A                         RTN
+
+BR_90EE:
+90EE   FD 8A                      POP  A
+90F0   9A                         RTN
+;% LB_ERL END
+
+
+;------------------------------------------------------------------------------------------------------------
+; REPKEY - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_REPKEY START
+REPKEY:
+90F1   C2 F1 9C 06                VEJ  (C2) \ AWRD($F19C) \ ABRF(BR_90FB) ; BCMD_LOG ($F165+?) \ $90FB
+90F5   B5 55                      LDI  A,$55
+
+BR_90F7:
+90F7   AE 79 D5                   STA  ($79D5) ; ***
+90FA   E2                         VEJ  (E2)
+
+BR_90FB:
+90FB   56                         DEC  Y
+90FC   56                         DEC  Y
+90FD   C2 F1 9E 04                VEJ  (C2) \ AWRD($F19E) \ ABRF(BR_9105) ; DIVISION ($F084) \ $9105
+9101   B5 00                      LDI  A,$00
+9103   9E 0E                      BCH  BR_90F7 ; $90F7
+
+BR_9105:
+9105   54                         INC  Y
+9106   E4                         VEJ  (E4)
+;% LB_REPKEY END
+
+
+;------------------------------------------------------------------------------------------------------------
+; GCLS - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_GCLS START
+GCLS:
+9107   15                         LDA  (Y)
+9108   B7 0D                      CPI  A,$0D
+910A   89 04                      BZR  BR_9110 ; $9110
+910C   B5 00                      LDI  A,$00
+910E   8E 06                      BCH  BR_9116 ; $9116
+
+BR_9110:
+9110   DE 39                      VEJ  (DE) \ ABRF(BR_914B) ; $914B
+9112   D0 10 36                   VEJ  (D0) \ ABYT($10) \ ABRF(BR_914B) ; $914B
+9115   24                         LDA  UL
+
+BR_9116:
+9116   BE 91 1A                   SJP  (JMP_911A) ; $911A
+9119   E2                         VEJ  (E2)
+
+JMP_911A:
+911A   B5 55                      LDI  A,$55
+911C   FD AE 30 00                STA  #($3000) ; ***
+9120   FD A7 30 00                CPA  #($3000) ; ***
+9124   89 08                      BZR  BR_912E ; $912E
+9126   68 07                      LDI  UH,$07
+9128   6A D0                      LDI  UL,$D0
+912A   48 68                      LDI  XH,$68
+912C   4A 00                      LDI  XL,$00
+
+BR_912E:
+912E   B5 00                      LDI  A,$00
+9130   FD AE 30 00                STA  #($3000) ; ***
+9134   68 3E                      LDI  UH,$3E
+9136   6A 81                      LDI  UL,$81
+9138   48 30                      LDI  XH,$30
+913A   4A 00                      LDI  XL,$00
+
+BR_913C:
+913C   FD 0E                      STA  #(X)
+913E   44                         INC  X
+913F   66                         DEC  U
+9140   6C 00                      CPI  UH,$00
+9142   89 05                      BZR  BR_9149 ; $9149
+9144   6E 00                      CPI  UL,$00
+9146   89 01                      BZR  BR_9149 ; $9149
+9148   9A                         RTN
+
+BR_9149:
+9149   9E 0F                      BCH  BR_913C ; $913C
+
+BR_914B:
+914B   E0                         VEJ  (E0)
+;% LB_GCLS END
+
+
+;------------------------------------------------------------------------------------------------------------
+; DEC - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_DEC START
+DEC:
+914C   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+;% LB_END 
+
+
+;------------------------------------------------------------------------------------------------------------
+; GVCURSOR - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_GVCURSOR START
+GVCURSOR:
+914F   E2                         VEJ  (E2)
+
+JMP_9150:
+9150   A5 79 D6                   LDA  ($79D6) ; ***
+9153   B7 55                      CPI  A,$55
+9155   89 02                      BZR  BR_9159 ; $9159
+9157   8E 1D                      BCH  BR_9176 ; $9176
+
+BR_9159:
+9159   B5 BE                      LDI  A,$BE
+915B   AE 78 50                   STA  (CPU_STACK + $50)
+915E   B5 E2                      LDI  A,$E2
+9160   AE 78 51                   STA  (CONSOLE_REG) ; $7851
+9163   B5 67                      LDI  A,$67
+9165   AE 78 52                   STA  (CONSOLE2) ; $7852
+
+BR_9168:
+9168   B5 9A                      LDI  A,$9A
+916A   AE 78 53                   STA  (CE158_UNDEF1) ; $7853
+916D   B5 9A                      LDI  A,$9A
+916F   AE 78 54                   STA  (CE158_UNDEF2) ; $7854
+9172   BE 78 50                   SJP  (CPU_STACK + $50)
+9175   9A                         RTN
+
+BR_9176:
+9176   B5 BE                      LDI  A,$BE
+9178   AE 78 50                   STA  (CPU_STACK + $50)
+917B   A5 78 56                   LDA  (ZONE_REG) ; $7856
+917E   AE 78 51                   STA  (CONSOLE_REG) ; $7851
+9181   A5 78 57                   LDA  (SETDEV_REG) ; $7857
+9184   AE 78 52                   STA  (CONSOLE2) ; $7852
+9187   9E 21                      BCH  BR_9168 ; $9168
+
+
+JMP_9189:
+9189   48 77                      LDI  XH,$77
+918B   4A 7F                      LDI  XL,$7F
+918D   58 77                      LDI  YH,$77
+918F   5A CF                      LDI  YL,$CF
+9191   68 07                      LDI  UH,$07
+9193   6A 80                      LDI  UL,$80
+
+BR_9195:
+9195   FD 05                      LDA  #(X)
+9197   FD 1E                      STA  #(Y)
+9199   46                         DEC  X
+919A   56                         DEC  Y
+919B   66                         DEC  U
+919C   6C 00                      CPI  UH,$00
+919E   89 05                      BZR  BR_91A5 ; $91A5
+91A0   6E 00                      CPI  UL,$00
+91A2   89 01                      BZR  BR_91A5 ; $91A5
+91A4   9A                         RTN
+
+BR_91A5:
+91A5   9E 12                      BCH  BR_9195 ; $9195
+;% LB_GVCURSOR END
+
+
+;------------------------------------------------------------------------------------------------------------
+; PRINT - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_PRINT START
+PRINT:
+91A7   C2 23 07                   VEJ  (C2) \ ACHR($23) \ ABRF(BR_91B1) ; $91B1
+91AA   C2 2D 0E                   VEJ  (C2) \ ACHR($2D) \ ABRF(BR_91BB) ; $91BB
+91AD   C6                         VEJ  (C6)
+91AE   BA E4 EE                   JMP  $E4EE ; ***
+
+BR_91B1:
+91B1   C6                         VEJ  (C6)
+91B2   D8                         VEJ  (D8)
+91B3   89 03                      BZR  BR_91BB ; $91B8
+91B5   BA E4 EB                   JMP  BCMD_PRINT ; $E4EB
+
+BR_91BB:
+91B8   BA 8A 8B                   JMP  JMP_8A8B ; $8A8B
+
+BR_91BB:
+91BB   C6                         VEJ  (C6)
+91BC   DE 14                      VEJ  (DE) \ ABRF(BR_91D2) ; $91D2
+91BE   D0 80 11                   VEJ  (D0) \ ABYT($80) \ ABRF(BR_91D2) ; $91D2
+91C1   F4 88 03                   VEJ  (F4) \ AWRD(BR_8803) ; $8803
+91C4   6C 44                      CPI  UH,$44
+91C6   89 07                      BZR  BR_91CF ; $91CF
+91C8   6E 49                      CPI  UL,$49
+91CA   89 03                      BZR  BR_91CF ; $91CF
+91CC   BA 88 F7                   JMP  $88F7
+
+BR_91CF:
+91CF   68 1B                      LDI  UH,$1B
+91D1   E0                         VEJ  (E0)
+
+BR_91D2:
+91D2   E0                         VEJ  (E0)
+;% LB_PRINT END
+
+
+;------------------------------------------------------------------------------------------------------------
+; MODE - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_MODE START
+MODE:
+91D3   FD E9 77 E0 00             ANI  #(STRING_VARS + $190),$00
+
+BR_91D8:
+91D8   C2 4D 3E                   VEJ  (C2) \ ACHR($4D) \ ABRF(BR_9219) ; $9219
+91DB   BE 91 EF                   SJP  (BR_91EF) ; $91EF
+91DE   15                         LDA  (Y)
+91DF   B7 2C                      CPI  A,$2C
+91E1   89 03                      BZR  BR_91E6 ; $91E6
+91E3   54                         INC  Y
+91E4   9E 0E                      BCH  BR_91D8 ; $91D8
+
+BR_91E6:
+91E6   FD A5 77 E0                LDA  #(STRING_VARS + $190)
+91EA   FD AE D8 00                STA  #($D800) ; ***
+91EE   E2                         VEJ  (E2)
+
+BR_91EF:
+91EF   DE 27                      VEJ  (DE) \ ABRF(BR_9218) ; $9218
+91F1   D0 10 24                   VEJ  (D0) \ ABYT($10) \ ABRF(BR_9218) ; $9218
+91F4   6C 01                      CPI  UH,$01
+91F6   81 03                      BCR  BR_91FB ; $91FB
+91F8   68 13                      LDI  UH,$13
+91FA   E0                         VEJ  (E0)
+
+BR_91FB:
+91FB   6E 09                      CPI  UL,$09
+91FD   89 03                      BZR  BR_9202 ; $9202
+91FF   68 13                      LDI  UH,$13
+9201   E0                         VEJ  (E0)
+
+BR_9202:
+9202   6E 00                      CPI  UL,$00
+9204   89 02                      BZR  BR_9208 ; $9208
+9206   6A 09                      LDI  UL,$09
+
+BR_9208:
+9208   62                         DEC  UL
+9209   B5 00                      LDI  A,$00
+920B   FB                         SEC
+
+BR_920C:
+920C   DB                         ROL
+920D   88 03                      LOP  UL,BR_920C ; $920C
+920F   FD AB 77 E0                ORA  #(STRING_VARS + $190)
+9213   FD AE 77 E0                STA  #(STRING_VARS + $190)
+9217   9A                         RTN
+
+BR_9218:
+9218   E0                         VEJ  (E0)
+
+BR_9219:
+9219   56                         DEC  Y
+921A   15                         LDA  (Y)
+921B   CD 04 01                   VMJ  ($04) \ ABRF($BR_921F) ; 921F
+921E   E2                         VEJ  (E2)
+
+BR_921F:
+921F   B7 22                      CPI  A,$22
+9221   89 02                      BZR  BR_9225 ; $9225
+9223   9E 4D                      BCH  BR_91D8 ; $91D8
+
+BR_9225:
+9225   C2 53 0A                   VEJ  (C2) \ ACHR($53) \ ABRF(BR_9232) ; $9232
+9228   DE 09                      VEJ  (DE) \ ABRF($9233)
+922A   D0 08 06                   VEJ  (D0) \ ABYT($08) \ ABRF(BR_9233) ; $9233
+922D   24                         LDA  UL
+922E   FD CC                      ATP
+9230   9E 5A                      BCH  BR_91D8 ; $91D8
+
+BR_9232:
+9232   E4                         VEJ  (E4)
+
+BR_9233:
+9233   E0                         VEJ  (E0)
+;% LB_MODE END
+
+
+;------------------------------------------------------------------------------------------------------------
+; SAVE - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_SAVE START
+SAVE:
+9234   15                         LDA  (Y)
+9235   54                         INC  Y
+9236   CD 34 04 43 3C 46 4A 51    VMJ  ($34) \ ABYT($04) \ 
+                                        ABYT($43) \ ABRF(BR_9277) \ 
+                                        ABYT($46) \ ABRF(BR_9287) \ 
+                                        ABYT($51) \ ABRF(BR_9297) \ 
+                                        ABYT($44) \ ABRF(BR_929A) \ 
+                                        ABYT($52) \ ABRF(BR_92B2)
+9243   E4                         VEJ  (E4)
+;% LB_SAVE END
+
+
+;------------------------------------------------------------------------------------------------------------
+; LOAD - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_LOAD START
+LOAD:
+9244   15                         LDA  (Y)
+9245   54                         INC  Y
+9246   CD 34 04 43 09 46 17 51    VMJ  ($34) \ ABYT($04) \ 
+                                        ABYT($43) \ ABRF(BR_9254) \ 
+                                        ABYT($46) \ ABRF(BR_9264) \ 
+                                        ABYT($51) \ ABRF(BR_9274) \ 
+                                        ABYT($44) \ ABRF(BR_92A6) \ 
+                                        ABYT($52) \ ABRF(BR_92BE)
+9253   E4                         VEJ  (E4)
+
+BR_9254:
+9254   F4 B8 02                   VEJ  (F4) \ AWRD($B802) ; ***
+9257   6C 43                      CPI  UH,$43
+9259   89 07                      BZR  BR_9262 ; $9262
+925B   6E 4D                      CPI  UL,$4D
+925D   89 03                      BZR  BR_9262 ; $9262
+925F   BA B8 F9                   JMP  CLOAD_150 ; $B8F9 
+
+BR_9262:
+9262   8E 72                      BCH  JMP_92D6 ; $92D6
+
+BR_9264:
+9264   F4 A8 05                   VEJ  (F4) \ AWRD($A805) ; *** PRINT_150 $A781
+9267   6C 4C                      CPI  UH,$4C
+9269   89 07                      BZR  BR_9272 ; $9272
+926B   6E 32                      CPI  UL,$32
+926D   89 03                      BZR  BR_9272 ; $9272
+926F   BA AD BB                   JMP  $ADBB ; *** GRAPH $ACD3
+
+BR_9272:
+9272   8E 62                      BCH  JMP_92D6 ; $92D6
+
+BR_9274:
+9274   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+
+BR_9277:
+9277   F4 B8 02                   VEJ  (F4) \ AWRD($B802) ; ***
+927A   6C 43                      CPI  UH,$43
+927C   89 07                      BZR  BR_9285 ; $9285
+927E   6E 4D                      CPI  UL,$4D
+9280   89 03                      BZR  BR_9285 ; $9285
+9282   BA B8 A6                   JMP  $B8A6
+
+BR_9285:
+9285   8E 4F                      BCH  JMP_92D6 ; $92D6
+
+BR_9287:
+9287   F4 A8 05                   VEJ  (F4) \ AWRD($A805) ; *** PRINT_150 $A781
+928A   6C 4C                      CPI  UH,$4C
+928C   89 07                      BZR  BR_9295 ; $9295
+928E   6E 32                      CPI  UL,$32
+9290   89 03                      BZR  BR_9295 ; $9295
+9292   BA AB 8F                   JMP  $AB8F ; ***
+
+BR_9295:
+9295   8E 3F                      BCH  JMP_92D6 ; $92D6
+
+BR_9297:
+9297   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+
+BR_929A:
+929A   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; *** PRINT_150 $A781
+929D   6C 44                      CPI  UH,$44
+929F   89 03                      BZR  BR_92A4 ; $92A4
+92A1   BA A8 F4                   JMP  $A8F4 ; ***
+
+BR_92A4:
+92A4   8E 30                      BCH  JMP_92D6 ; $92D6
+
+BR_92A6:
+92A6   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; ***
+92A9   6C 44                      CPI  UH,$44
+92AB   89 03                      BZR  BR_92B0 ; $92B0
+92AD   BA A8 F1                   JMP  $A8F1 ; ***
+
+BR_92B0:
+92B0   8E 24                      BCH  JMP_92D6 ; $92D6
+
+BR_92B2:
+92B2   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; ***
+92B5   6C 44                      CPI  UH,$44
+92B7   89 03                      BZR  BR_92BC ; $92BC
+92B9   BA A8 EE                   JMP  $A8EE ; ***
+
+BR_92BC;
+92BC   8E 18                      BCH  JMP_92D6 ; $92D6
+
+BR_92BE:
+92BE   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; ***
+92C1   6C 44                      CPI  UH,$44
+92C3   89 03                      BZR  BR_92C8 ; $92C8
+92C5   BA A8 EB                   JMP  $A8EB ; ***
+
+BR_92C8:
+92C8   8E 0C                      BCH  JMP_92D6 ; $92D6
+92CA   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; ***
+92CD   6C 44                      CPI  UH,$44
+92CF   89 03                      BZR  BR_92D4 ; $92D4
+92D1   BA A8 E8                   JMP  $A8E8 ; ***
+
+BR_92D4:
+92D4   9E 00                      BCH  JMP_92D6 ; $92D6
+
+JMP_92D6:
+92D6   68 1B                      LDI  UH,$1B
+92D8   E0                         VEJ  (E0)
+;% LB_LOAD END
+
+
+;------------------------------------------------------------------------------------------------------------
+; VERIFYQ - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_VERIFYQ START
+VERIFYQ:
+92D9   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+;% LB_VERIFYQ END
+
+
+;------------------------------------------------------------------------------------------------------------
+; CHAIN - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_CHAIN START
+CHAIN:
+92DC   55                         LIN  Y
+92DD   CD 34 01 43 13 51 21       VMJ  ($34) \ ABYT($01) \ 
+                                        ABYT($43) \ ABRF(BR_92F5) \ 
+                                        ABYT($51) \ ABRF(BR_9305)
+92E4   F4 B8 02                   VEJ  (F4) \ AWRD($B802)
+92E7   6C 43                      CPI  UH,$43
+92E9   89 08                      BZR  BR_92F3 ; $92F3
+92EB   6E 4D                      CPI  UL,$4D
+92ED   89 04                      BZR  BR_92F3 ; $92F3
+92EF   56                         DEC  Y
+92F0   BA BB 6A                   JMP  CHAIN_150 ; $BB6A
+
+BR_92F3:
+92F3   9E 1F                      BCH  JMP_92D6 ; $92D6
+
+BR_92F5:
+92F5   F4 B8 02                   VEJ  (F4) \ AWRD($B802) ; ***
+92F8   6C 43                      CPI  UH,$43
+92FA   89 07                      BZR  BR_9303 ; $9303
+92FC   6E 4D                      CPI  UL,$4D
+92FE   89 03                      BZR  BR_9303 ; $9303
+9300   BA BB 6A                   JMP  CHAIN_150 ; $BB6A
+
+BR_9303:
+9303   9E 2F                      BCH  JMP_92D6 ; $92D6
+
+BR_9305:
+9305   BA 92 D6                   JMP  JMP_92D6 ; $92D6
+;% LB_CHAIN END
+
+
+;------------------------------------------------------------------------------------------------------------
+; KEY - 
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;% LB_KEY START
+KEY:
+9308   C2 F1 82 17                VEJ  (C2) \ AWRD($F182) \ ABRF(BR_9323) ; $9323
+930C   C2 F1 9C 07                VEJ  (C2) \ AWRD($F19C) \ ABRF(BR_9317) ; $9317
+9310   B5 55                      LDI  A,$55
+9312   FD AE 77 E2                STA  #(STRING_VARS + $192)
+9316   E2                         VEJ  (E2)
+
+BR_9317:
+9317   C6                         VEJ  (C6)
+9318   C2 F1 9E 06                VEJ  (C2) \ AWRD($F19E) \ ABRF(BR_9322) ; $9322
+931C   FD E9 77 E2 00             ANI  #(STRING_VARS + $192),$00
+9321   E2                         VEJ  (E2)
+
+BR_9322:
+9322   E4                         VEJ  (E4)
+
+BR_9323:
+9323   C6                         VEJ  (C6)
+9324   C2 F1 9C 11                VEJ  (C2) \ AWRD($F19C) \ ABRF(BR_9339) ; $9339
+9328   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; ***
+932B   6C 44                      CPI  UH,$44
+932D   89 07                      BZR  BR_9336 ; $9336
+932F   6E 49                      CPI  UL,$49
+9331   89 03                      BZR  BR_9336 ; $9336
+9333   BA A8 FD                   JMP  $A8FD ; ***
+
+BR_9336:
+9336   68 1B                      LDI  UH,$1B
+9338   E0                         VEJ  (E0)
+
+BR_9339:
+9339   C6                         VEJ  (C6)
+933A   C2 F1 9E 11                VEJ  (C2) \ AWRD($F19E) \ ABRF(BR_934F) ; $934F
+933E   F4 A8 03                   VEJ  (F4) \ AWRD($A803) ; ***
+9341   6C 44                      CPI  UH,$44
+9343   89 07                      BZR  BR_934C ; $934C
+9345   6E 49                      CPI  UL,$49
+9347   89 03                      BZR  BR_934C ; $934C
+9349   BA A8 FA                   JMP  $A8FA ; ***
+
+BR_934C: 
+934C   68 1B                      LDI  UH,$1B
+934E   E0                         VEJ  (E0)
+
+BR_934F:
+934F   E4                         VEJ  (E4)
+9350   FD C8                      PSH  A
+9352   FD A5 77 F0                LDA  #(STRING_VARS + $1A0)
+9356   B7 55                      CPI  A,$55
+9358   89 0E                      BZR  BR_9368 ; $9368
+935A   FD A5 77 F1                LDA  #(STRING_VARS + $1A1)
+935E   08                         STA  XH
+935F   FD A5 77 F2                LDA  #(STRING_VARS + $1A2)
+9363   0A                         STA  XL
+9364   FD 8A                      POP  A
+9366   FD 5E                      STX  P
+
+BR_9368:
+9368   FD 8A                      POP  A
+936A   BA C4 AF                   JMP  TRCROUTINE ; $C4AF
+
+
+; $936D-$9394
+936D   54 45 4C 2E 20 30 37 31    .TEXT  TEL. 071
+9375   36 31 2F 37 39 30 32 31    .TEXT  61/79021
+937D   20 61 6E 72 75 66 65 6E    .TEXT   anrufen
+9385   20 21 48 4F 20 56 2E 31    .TEXT   !HO V.1
+938D   2E 30 20 38 35 39 20 20    .TEXT  .0 859 
+
+
+; $9395 - $93FF
+9395   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+939D   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93A5   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93AD   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93B5   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93BD   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93C5   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93CD   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93D5   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93DD   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93E5   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93ED   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93F5   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+93FD   00 00 00                   .BYTE  $00,$00,$00
+
+
+; last character of name has bit 7 set. Use macro EOW to accomplish this.
+; $9400 - $9F80
+;         NAME              BIT 7 SET      ADDRESS
+    .TEXT "VLIS"         \  EOW('T')  \  .WORD $8000
+    .TEXT "OPNCR"        \  EOW('T')  \  .WORD $0040
+    .TEXT "TESTEN"       \  EOW('D')  \  .WORD $0004
+    .TEXT "CHANGETOKE"   \  EOW('N')  \  .WORD $001C
+    .TEXT "SEARCHENTE"   \  EOW('R')  \  .WORD $0020
+    .TEXT "MAKEPARAME"   \  EOW('T')  \  .WORD $002E
+    .TEXT "MEHRFACHVE"   \  EOW('R')  \  .WORD $0034
+    .TEXT "LDXRESERVE"   \  EOW('S')  \  .WORD $0038
+    .TEXT "RSHIFT7BY"    \  EOW('T')  \  .WORD $0074
+    .TEXT "MOVESTROUT"   \  EOW('P')  \  .WORD $0094
+    .TEXT "DISPLAYTEX"   \  EOW('T')  \  .WORD $0092
+    .TEXT "MAKEUSIN"     \  EOW('G')  \  .WORD $0096
+    .TEXT "WARTEULAN"    \  EOW('G')  \  .WORD $00AC
+    .TEXT "LDUZEICHE"    \  EOW('N')  \  .WORD $00C0
+    .TEXT "TESTTOKZE"    \  EOW('I')  \  .WORD $00C2
+    .TEXT "TESTUTOKZ"    \  EOW('E')  \  .WORD $00C4
+    .TEXT "DECYTOKZE"    \  EOW('I')  \  .WORD $00C6
+    .TEXT "NOENDTES"     \  EOW('T')  \  .WORD $00C8
+    .TEXT "LADE78NN"     \  EOW('X')  \  .WORD $00CA
+    .TEXT "LADEXAUS7"    \  EOW('8')  \  .WORD $00CC
+    .TEXT "ARITMETI"     \  EOW('K')  \  .WORD $00D0
+    .TEXT "TESTSTRNU"    \  EOW('M')  \  .WORD $00D2
+    .TEXT "TESTBASICRU"  \  EOW('N')  \  .WORD $00D8
+    .TEXT "STRINGINF"    \  EOW('O')  \  .WORD $00DC
+    .TEXT "AUSDRUC"      \  EOW('K')  \  .WORD $00DE
+    .TEXT "ERRO"         \  EOW('R')  \  .WORD $00E0
+    .TEXT "INTERPRETE"   \  EOW('R')  \  .WORD $00E2
+    .TEXT "ERROR"        \  EOW('1')  \  .WORD $00E4
+    .TEXT "CLEARLC"      \  EOW('D')  \  .WORD $00F2
+    .TEXT "LADEUAUSNNN"  \  EOW('N')  \  .WORD $00F4
+    .TEXT "TESTKE"       \  EOW('Y')  \  .WORD $E42C
+    .TEXT "STORESTRIN"   \  EOW('G')  \  .WORD $DFB4
+    .TEXT "STOREINDST"   \  EOW('R')  \  .WORD $DFC5
+    .TEXT "FARBRA"       \  EOW('M')  \  .WORD $6000
+    .TEXT "GRAPHIKRA"    \  EOW('M')  \  .WORD $3000
+    .TEXT "VIDEORA"      \  EOW('M')  \  .WORD $7000
+    .TEXT "VIDEOPROZE"   \  EOW('S')  \  .WORD $7800
+    .TEXT "BASICEND"     \  EOW('H')  \  .WORD $7867
+    .TEXT "BASICEND"     \  EOW('L')  \  .WORD $7868
+    .TEXT "BASICANF"     \  EOW('H')  \  .WORD $7865
+    .TEXT "BASICANF"     \  EOW('L')  \  .WORD $7866
+    .TEXT "STATUS"       \  EOW('H')  \  .WORD $764E
+    .TEXT "STATUS"       \  EOW('L')  \  .WORD $764F
+    .TEXT "INPUTBUFFE"   \  EOW('R')  \  .WORD $7BB0
+    .TEXT "TASTUMLEI"    \  EOW('T')  \  .WORD $79D4
+    .TEXT "TASTUMPOI"    \  EOW('H')  \  .WORD $785B
+    .TEXT "TASTUMPOI"    \  EOW('L')  \  .WORD $785C
+    .TEXT "WAITY"        \  EOW('N')  \  .WORD $7871
+    .TEXT "WAITCOUNT"    \  EOW('H')  \  .WORD $7872
+    .TEXT "WAITCOUNT"    \  EOW('L')  \  .WORD $7873
+    .TEXT "BLINKFLA"     \  EOW('G')  \  .WORD $787C
+    .TEXT "OUTPBUFFP"    \  EOW('O')  \  .WORD $788F
+    .TEXT "STRIBUFFP"    \  EOW('O')  \  .WORD $7894
+    .TEXT "USINGFORMA"   \  EOW('T')  \  .WORD $7895
+    .TEXT "USINGLAEN"    \  EOW('G')  \  .WORD $7896
+    .TEXT "USINGSTRIN"   \  EOW('G')  \  .WORD $7897
+    .TEXT "SEARCHADR"    \  EOW('H')  \  .WORD $78A6
+    .TEXT "SEARCHADR"    \  EOW('L')  \  .WORD $78A7
+    .TEXT "MODULS"       \  EOW('W')  \  .WORD $D800
+    .TEXT "MODU"         \  EOW('L')  \  .WORD $77E0
+    .TEXT "KEYBEE"       \  EOW('P')  \  .WORD $77E2
+    .TEXT "LREC"         \  EOW('L')  \  .WORD $77D1
+    .TEXT "UP"           \  EOW('L')  \  .WORD $77D2
+    .TEXT "IN"           \  EOW('P')  \  .WORD $77D3
+    .TEXT "CUR"          \  EOW('H')  \  .WORD $77D4
+    .TEXT "CUR"          \  EOW('L')  \  .WORD $77D5
+    .TEXT "CURP"         \  EOW('1')  \  .WORD $77D6
+    .TEXT "MOMENTVCU"    \  EOW('R')  \  .WORD $774E
+    .TEXT "MOMENTHCU"    \  EOW('R')  \  .WORD $774F
+    .TEXT "KOM"          \  EOW('P')  \  .WORD $77D7
+    .TEXT "INP"          \  EOW('P')  \  .WORD $77D8
+    .TEXT "VARIABL"      \  EOW('E')  \  .WORD $77D9
+    .TEXT "CURSORAR"     \  EOW('T')  \  .WORD $77DA
+    .TEXT "CURSORART"    \  EOW('L')  \  .WORD $77DB
+    .TEXT "FARB"         \  EOW('E')  \  .WORD $77DC
+    .TEXT "HINTERG"      \  EOW('R')  \  .WORD $77DD
+    .TEXT "ZEICHFARB"    \  EOW('E')  \  .WORD $77DE
+    .TEXT "VAR"          \  EOW('2')  \  .WORD $77DF
+    .TEXT "USRT"         \  EOW('R')  \  .WORD $77F0
+    .TEXT "USRTR"        \  EOW('1')  \  .WORD $77F1
+    .TEXT "USRTR"        \  EOW('2')  \  .WORD $77F2
+    .TEXT "PRINTFLA"     \  EOW('G')  \  .WORD $77F3
+    .TEXT "INFOR"        \  EOW('M')  \  .WORD $77F4
+    .TEXT "INPFLA"       \  EOW('G')  \  .WORD $77E1
+    .TEXT "TOKEN0"       \  EOW('1')  \  .WORD $F0DD
+    .TEXT "TOKEN0"       \  EOW('2')  \  .WORD $F0DE
+    .TEXT "TOKEN0"       \  EOW('3')  \  .WORD $F0DF
+    .TEXT "TOKEN0"       \  EOW('4')  \  .WORD $F088
+    .TEXT "TOKEN0"       \  EOW('5')  \  .WORD $F0EB
+    .TEXT "TOKEN0"       \  EOW('6')  \  .WORD $F0B1
+    .TEXT "TOKEN0"       \  EOW('7')  \  .WORD $F084
+    .TEXT "TOKEN0"       \  EOW('8')  \  .WORD $F0E0
+    .TEXT "TOKEN0"       \  EOW('9')  \  .WORD $F070
+    .TEXT "TOKEN1"       \  EOW('0')  \  .WORD $F0C7
+    .TEXT "TOKEN1"       \  EOW('1')  \  .WORD $F053
+    .TEXT "TOKEN1"       \  EOW('2')  \  .WORD $F052
+    .TEXT "TOKEN1"       \  EOW('3')  \  .WORD $F0E1
+    .TEXT "TOKEN1"       \  EOW('4')  \  .WORD $F0E8
+    .TEXT "TOKEN1"       \  EOW('5')  \  .WORD $F0E9
+    .TEXT "TOKEN1"       \  EOW('6')  \  .WORD $F054
+    .TEXT "TOKEN1"       \  EOW('7')  \  .WORD $F055
+    .TEXT "TOKEN1"       \  EOW('8')  \  .WORD $F071
+    .TEXT "TOKEN1"       \  EOW('9')  \  .WORD $F091
+    .TEXT "TOKEN2"       \  EOW('0')  \  .WORD $F0E2
+    .TEXT "TOKEN2"       \  EOW('1')  \  .WORD $F0B2
+    .TEXT "TOKEN2"       \  EOW('2')  \  .WORD $F090
+    .TEXT "TOKEN2"       \  EOW('3')  \  .WORD $F080
+    .TEXT "TOKEN2"       \  EOW('4')  \  .WORD $F0E4
+    .TEXT "TOKEN2"       \  EOW('5')  \  .WORD $F097
+    .TEXT "TOKEN2"       \  EOW('6')  \  .WORD $F0C3
+    .TEXT "TOKEN2"       \  EOW('7')  \  .WORD $F0C5
+    .TEXT "TOKEN2"       \  EOW('8')  \  .WORD $F081
+    .TEXT "TOKEN2"       \  EOW('9')  \  .WORD $F0E7
+    .TEXT "TOKEN3"       \  EOW('0')  \  .WORD $F0EA
+    .TEXT "TOKEN3"       \  EOW('1')  \  .WORD $F056
+    .TEXT "TOKEN3"       \  EOW('2')  \  .WORD $F050
+    .TEXT "TOKEN3"       \  EOW('3')  \  .WORD $F083
+    .TEXT "T"            \  EOW('B')  \  .WORD $8055
+    .TEXT "T"            \  EOW('C')  \  .WORD $8060
+    .TEXT "T"            \  EOW('D')  \  .WORD $8094
+    .TEXT "T"            \  EOW('E')  \  .WORD $80A4
+    .TEXT "T"            \  EOW('G')  \  .WORD $80BD
+    .TEXT "T"            \  EOW('H')  \  .WORD $80DF
+    .TEXT "T"            \  EOW('I')  \  .WORD $8101
+    .TEXT "T"            \  EOW('K')  \  .WORD $810B
+    .TEXT "T"            \  EOW('L')  \  .WORD $8113
+    .TEXT "T"            \  EOW('M')  \  .WORD $8125
+    .TEXT "T"            \  EOW('P')  \  .WORD $813A
+    .TEXT "T"            \  EOW('R')  \  .WORD $8144
+    .TEXT "T"            \  EOW('S')  \  .WORD $815A
+    .TEXT "T"            \  EOW('T')  \  .WORD $816D
+    .TEXT "T"            \  EOW('V')  \  .WORD $8177
+    .TEXT "ANFAN"        \  EOW('G')  \  .WORD $819E
+    .TEXT "ANF"          \  EOW('1')  \  .WORD $81F4
+    .TEXT "KE"           \  EOW('Y')  \  .WORD $822F
+    .TEXT "MODE"         \  EOW('T')  \  .WORD $836B
+    .TEXT "ALTE"         \  EOW('R')  \  .WORD $8381
+    .TEXT "BASI"         \  EOW('C')  \  .WORD $83BB
+    .TEXT "NEXT"         \  EOW('L')  \  .WORD $83C6
+    .TEXT "NEXT"         \  EOW('0')  \  .WORD $83F0
+    .TEXT "NEXT"         \  EOW('E')  \  .WORD $8417
+    .TEXT "ENTE"         \  EOW('R')  \  .WORD $8419
+    .TEXT "NEXT"         \  EOW('C')  \  .WORD $841F
+    .TEXT "NEXT"         \  EOW('D')  \  .WORD $842D
+    .TEXT "NEXT"         \  EOW('2')  \  .WORD $843B
+    .TEXT "MODU"         \  EOW('S')  \  .WORD $8456
+    .TEXT "MOD"          \  EOW('1')  \  .WORD $8466
+    .TEXT "RPMOD"        \  EOW('E')  \  .WORD $84BB
+    .TEXT "MOD"          \  EOW('C')  \  .WORD $84C5
+    .TEXT "MODEN"        \  EOW('D')  \  .WORD $84D4
+    .TEXT "SCROL"        \  EOW('L')  \  .WORD $84D7
+    .TEXT "SCR"          \  EOW('1')  \  .WORD $84E6
+    .TEXT "SCR"          \  EOW('2')  \  .WORD $84FD
+    .TEXT "SCROL"        \  EOW('1')  \  .WORD $8501
+    .TEXT "SCRO"         \  EOW('2')  \  .WORD $8511
+    .TEXT "SCREN"        \  EOW('D')  \  .WORD $8524
+    .TEXT "DECOD"        \  EOW('E')  \  .WORD $852C
+    .TEXT "DECOD"        \  EOW('1')  \  .WORD $8535
+    .TEXT "DECOD1"       \  EOW('A')  \  .WORD $8556
+    .TEXT "DECOD"        \  EOW('2')  \  .WORD $8576
+    .TEXT "DECOD"        \  EOW('3')  \  .WORD $857A
+    .TEXT "DCD"          \  EOW('3')  \  .WORD $8595
+    .TEXT "TRUN"         \  EOW('K')  \  .WORD $85B6
+    .TEXT "NOCOD"        \  EOW('E')  \  .WORD $85BB
+    .TEXT "NC"           \  EOW('D')  \  .WORD $85F0
+    .TEXT "TREN"         \  EOW('N')  \  .WORD $8604
+    .TEXT "TRENRE"       \  EOW('T')  \  .WORD $860D
+    .TEXT "TREN"         \  EOW('E')  \  .WORD $8643
+    .TEXT "TREN"         \  EOW('1')  \  .WORD $8646
+    .TEXT "TRUN"         \  EOW('C')  \  .WORD $8656
+    .TEXT "CURSO"        \  EOW('R')  \  .WORD $8663
+    .TEXT "TO"           \  EOW('F')  \  .WORD $86E4
+    .TEXT "EO"           \  EOW('F')  \  .WORD $86FA
+    .TEXT "OB"           \  EOW('F')  \  .WORD $8721
+    .TEXT "OUBF"         \  EOW('1')  \  .WORD $8752
+    .TEXT "OUBF"         \  EOW('0')  \  .WORD $878B
+    .TEXT "OUBF"         \  EOW('2')  \  .WORD $8799
+    .TEXT "OUBF"         \  EOW('3')  \  .WORD $879D
+    .TEXT "OUBF"         \  EOW('4')  \  .WORD $87A5
+    .TEXT "OBF"          \  EOW('5')  \  .WORD $87BB
+    .TEXT "STE"          \  EOW('P')  \  .WORD $87CC
+    .TEXT "LENGT"        \  EOW('H')  \  .WORD $87D4
+    .TEXT "OVERF"        \  EOW('L')  \  .WORD $87E7
+    .TEXT "OVFL"         \  EOW('0')  \  .WORD $87FD
+    .TEXT "OVF"          \  EOW('0')  \  .WORD $882D
+    .TEXT "OVF"          \  EOW('1')  \  .WORD $8839
+    .TEXT "OVF"          \  EOW('2')  \  .WORD $883D
+    .TEXT "OUTSC"        \  EOW('R')  \  .WORD $8854
+    .TEXT "OUTSC"        \  EOW('1')  \  .WORD $885D
+    .TEXT "OUTSC"        \  EOW('2')  \  .WORD $8865
+    .TEXT "OUTSC"        \  EOW('E')  \  .WORD $88AE
+    .TEXT "DCU"          \  EOW('V')  \  .WORD $88B5
+    .TEXT "OBTUP"        \  EOW('L')  \  .WORD $88BF
+    .TEXT "OBTUP"        \  EOW('0')  \  .WORD $88CC
+    .TEXT "OBTUP"        \  EOW('1')  \  .WORD $88DA
+    .TEXT "OBTUP"        \  EOW('E')  \  .WORD $88E5
+    .TEXT "UO"           \  EOW('V')  \  .WORD $88EB
+    .TEXT "RPLAN"        \  EOW('E')  \  .WORD $88FD
+    .TEXT "RESMO"        \  EOW('D')  \  .WORD $8929
+    .TEXT "RSM"          \  EOW('0')  \  .WORD $8940
+    .TEXT "RSM"          \  EOW('1')  \  .WORD $894E
+    .TEXT "CUROF"        \  EOW('F')  \  .WORD $8963
+    .TEXT "VCL"          \  EOW('S')  \  .WORD $8974
+    .TEXT "HE"           \  EOW('X')  \  .WORD $8981
+    .TEXT "VH"           \  EOW('1')  \  .WORD $898F
+    .TEXT "VHAS"         \  EOW('C')  \  .WORD $89A1
+    .TEXT "VHAS"         \  EOW('1')  \  .WORD $89A9
+    .TEXT "VHAS"         \  EOW('2')  \  .WORD $89B3
+    .TEXT "CONSOL"       \  EOW('E')  \  .WORD $89B5
+    .TEXT "VSIZ"         \  EOW('1')  \  .WORD $8A27
+    .TEXT "DI"           \  EOW('P')  \  .WORD $8A38
+    .TEXT "VSIZ"         \  EOW('F')  \  .WORD $8A46
+    .TEXT "VSIZF"        \  EOW('A')  \  .WORD $8A48
+    .TEXT "VCUR"         \  EOW('S')  \  .WORD $8A49
+    .TEXT "CURS1"        \  EOW('W')  \  .WORD $8A75
+    .TEXT "CURS2"        \  EOW('W')  \  .WORD $8A7E
+    .TEXT "ERRCU"        \  EOW('R')  \  .WORD $8A88
+    .TEXT "ERRCURSO"     \  EOW('R')  \  .WORD $8A8A
+    .TEXT "VPRIN"        \  EOW('T')  \  .WORD $8A8B
+    .TEXT "CLO"          \  EOW('B')  \  .WORD $8AA3
+    .TEXT "VPA"          \  EOW('N')  \  .WORD $8AA6
+    .TEXT "VPAN"         \  EOW('0')  \  .WORD $8AB6
+    .TEXT "VPR"          \  EOW('0')  \  .WORD $8ABB
+    .TEXT "PRF"          \  EOW('0')  \  .WORD $8AC5
+    .TEXT "VPR"          \  EOW('1')  \  .WORD $8AC8
+    .TEXT "USIN"         \  EOW('G')  \  .WORD $8AF7
+    .TEXT "US"           \  EOW('1')  \  .WORD $8B02
+    .TEXT "US"           \  EOW('2')  \  .WORD $8B0C
+    .TEXT "PRAS"         \  EOW('C')  \  .WORD $8B27
+    .TEXT "PRSC"         \  EOW('0')  \  .WORD $8B31
+    .TEXT "PRSC"         \  EOW('1')  \  .WORD $8B52
+    .TEXT "PRSC"         \  EOW('2')  \  .WORD $8B62
+    .TEXT "PRSC"         \  EOW('3')  \  .WORD $8B69
+    .TEXT "VPR"          \  EOW('2')  \  .WORD $8B91
+    .TEXT "OUTBU"        \  EOW('F')  \  .WORD $8B9E
+    .TEXT "OBF"          \  EOW('0')  \  .WORD $8BC0
+    .TEXT "OBF"          \  EOW('1')  \  .WORD $8BFC
+    .TEXT "PRTEN"        \  EOW('D')  \  .WORD $8C17
+    .TEXT "PRFEH"        \  EOW('L')  \  .WORD $8C38
+    .TEXT "WAI"          \  EOW('T')  \  .WORD $8C3F
+    .TEXT "NOV"          \  EOW('C')  \  .WORD $8C4A
+    .TEXT "KOM"          \  EOW('L')  \  .WORD $8C57
+    .TEXT "KOML"         \  EOW('1')  \  .WORD $8C72
+    .TEXT "INPU"         \  EOW('T')  \  .WORD $8C89
+    .TEXT "XINP"         \  EOW('1')  \  .WORD $8C8F
+    .TEXT "XINP"         \  EOW('3')  \  .WORD $8CC7
+    .TEXT "XINP"         \  EOW('6')  \  .WORD $8CCA
+    .TEXT "XINP"         \  EOW('4')  \  .WORD $8CD1
+    .TEXT "XINP"         \  EOW('2')  \  .WORD $8CFB
+    .TEXT "XINP"         \  EOW('5')  \  .WORD $8D15
+    .TEXT "EDITO"        \  EOW('R')  \  .WORD $8D18
+    .TEXT "CLEARSC"      \  EOW('R')  \  .WORD $8D41
+    .TEXT "CL"           \  EOW('1')  \  .WORD $8D4A
+    .TEXT "WRITE"        \  EOW('1')  \  .WORD $8D5E
+    .TEXT "WRITE"        \  EOW('2')  \  .WORD $8D64
+    .TEXT "OBTAI"        \  EOW('N')  \  .WORD $8D6B
+    .TEXT "OBT"          \  EOW('1')  \  .WORD $8D95
+    .TEXT "OBT"          \  EOW('2')  \  .WORD $8D99
+    .TEXT "OBTEN"        \  EOW('D')  \  .WORD $8D9C
+    .TEXT "OBT"          \  EOW('F')  \  .WORD $8DA3
+    .TEXT "INITIA"       \  EOW('L')  \  .WORD $8DA8
+    .TEXT "INITIA"       \  EOW('1')  \  .WORD $8DAC
+    .TEXT "FIRS"         \  EOW('T')  \  .WORD $8DC1
+    .TEXT "WARTE"        \  EOW('V')  \  .WORD $8DD0
+    .TEXT "AN"           \  EOW('Z')  \  .WORD $8DDE
+    .TEXT "TA"           \  EOW('S')  \  .WORD $8DEA
+    .TEXT "FIRST"        \  EOW('1')  \  .WORD $8E03
+    .TEXT "STRTA"        \  EOW('D')  \  .WORD $8E5F
+    .TEXT "CLS"          \  EOW('0')  \  .WORD $8E64
+    .TEXT "CLS"          \  EOW('1')  \  .WORD $8E6D
+    .TEXT "CLS"          \  EOW('A')  \  .WORD $8E78
+    .TEXT "CLSA"         \  EOW('0')  \  .WORD $8E7C
+    .TEXT "STO"          \  EOW('R')  \  .WORD $8E86
+    .TEXT "DAT"          \  EOW('1')  \  .WORD $8E8F
+    .TEXT "DAT"          \  EOW('2')  \  .WORD $8EA1
+    .TEXT "MOD"          \  EOW('T')  \  .WORD $8EB3
+    .TEXT "TXT"          \  EOW('5')  \  .WORD $8EC7
+    .TEXT "MONITO"       \  EOW('R')  \  .WORD $8EE1
+    .TEXT "VCURSO"       \  EOW('R')  \  .WORD $8EE4
+    .TEXT "VPCURSO"      \  EOW('R')  \  .WORD $8EEB
+    .TEXT "HCURSO"       \  EOW('R')  \  .WORD $8EFD
+    .TEXT "HPCURSO"      \  EOW('R')  \  .WORD $8F04
+    .TEXT "LIS"          \  EOW('T')  \  .WORD $8F16
+    .TEXT "VLISTAL"      \  EOW('L')  \  .WORD $8F43
+    .TEXT "LISTAL"       \  EOW('L')  \  .WORD $8F46
+    .TEXT "PLISTAL"      \  EOW('L')  \  .WORD $8F54
+    .TEXT "LISTCR"       \  EOW('T')  \  .WORD $8F56
+    .TEXT "LISTSCROL"    \  EOW('L')  \  .WORD $8F76
+    .TEXT "LISTLABE"     \  EOW('L')  \  .WORD $8F7C
+    .TEXT "HOLD"         \  EOW('1')  \  .WORD $8F95
+    .TEXT "HOLD"         \  EOW('2')  \  .WORD $8F97
+    .TEXT "WART"         \  EOW('E')  \  .WORD $8FA7
+    .TEXT "LISTEDI"      \  EOW('T')  \  .WORD $9010
+    .TEXT "BACKG"        \  EOW('R')  \  .WORD $9023
+    .TEXT "BACKGRS"      \  EOW('T')  \  .WORD $9065
+    .TEXT "BACKGRB"      \  EOW('E')  \  .WORD $906A
+    .TEXT "BACKGRLADE"   \  EOW('N')  \  .WORD $9072
+    .TEXT "ERRBACKG"     \  EOW('R')  \  .WORD $9081
+    .TEXT "ER"           \  EOW('N')  \  .WORD $9082
+    .TEXT "ER"           \  EOW('L')  \  .WORD $9088
+    .TEXT "SCHUT"        \  EOW('Z')  \  .WORD $908E
+    .TEXT "SLEE"         \  EOW('P')  \  .WORD $90AA
+    .TEXT "REPZE"        \  EOW('I')  \  .WORD $90DE
+    .TEXT "REPKE"        \  EOW('Y')  \  .WORD $90F1
+    .TEXT "LDRE"         \  EOW('P')  \  .WORD $90F7
+    .TEXT "REPOF"        \  EOW('F')  \  .WORD $90FB
+    .TEXT "ERRRE"        \  EOW('P')  \  .WORD $9105
+    .TEXT "GCL"          \  EOW('S')  \  .WORD $9107
+    .TEXT "CLEARG"       \  EOW('R')  \  .WORD $9116
+    .TEXT "CLRGRAP"      \  EOW('H')  \  .WORD $911A
+    .TEXT "CLRGS"        \  EOW('T')  \  .WORD $913C
+    .TEXT "ERRGCL"       \  EOW('S')  \  .WORD $914B
+    .TEXT "DE"           \  EOW('Z')  \  .WORD $914C
+    .TEXT "TES"          \  EOW('T')  \  .WORD $914F
+    .TEXT "COLO"         \  EOW('R')  \  .WORD $914F
+    .TEXT "EDI"          \  EOW('T')  \  .WORD $914F
+    .TEXT "GCURSO"       \  EOW('R')  \  .WORD $914F
+    .TEXT "GPRIN"        \  EOW('T')  \  .WORD $914F
+    .TEXT "REPRO"        \  EOW('G')  \  .WORD $914F
+    .TEXT "KEYRA"        \  EOW('M')  \  .WORD $9150
+    .TEXT "SETP"         \  EOW('V')  \  .WORD $9168
+    .TEXT "KEYBOUMLEI"   \  EOW('T')  \  .WORD $9176
+    .TEXT "SCROLLMINU"   \  EOW('S')  \  .WORD $9189
+    .TEXT "COP"          \  EOW('Y')  \  .WORD $9195
+    .TEXT "PRIN"         \  EOW('T')  \  .WORD $91A7
+    .TEXT "PRINTNOKREU"  \  EOW('Z')  \  .WORD $91B1
+    .TEXT "PRINTDIS"     \  EOW('K')  \  .WORD $91BB
+    .TEXT "ERRPRK"       \  EOW('R')  \  .WORD $91D2
+    .TEXT "MOD"          \  EOW('E')  \  .WORD $91D3
+    .TEXT "MODEC"        \  EOW('L')  \  .WORD $91D8
+    .TEXT "SUBM"         \  EOW('O')  \  .WORD $91EF
+    .TEXT "MODULBI"      \  EOW('T')  \  .WORD $920C
+    .TEXT "MER"          \  EOW('R')  \  .WORD $9218
+    .TEXT "SPEEDS"       \  EOW('W')  \  .WORD $9219
+    .TEXT "SPEED"        \  EOW('2')  \  .WORD $921F
+    .TEXT "SER"          \  EOW('R')  \  .WORD $9232
+    .TEXT "SERR"         \  EOW('2')  \  .WORD $9233
+    .TEXT "SAV"          \  EOW('E')  \  .WORD $9234
+    .TEXT "LOA"          \  EOW('D')  \  .WORD $9244
+    .TEXT "LOAD"         \  EOW('C')  \  .WORD $9254
+    .TEXT "LOAD"         \  EOW('F')  \  .WORD $9264
+    .TEXT "LOAD"         \  EOW('Q')  \  .WORD $9274
+    .TEXT "SAVE"         \  EOW('C')  \  .WORD $9277
+    .TEXT "SAVE"         \  EOW('F')  \  .WORD $9287
+    .TEXT "SAVE"         \  EOW('Q')  \  .WORD $9297
+    .TEXT "SAVE"         \  EOW('D')  \  .WORD $929A
+    .TEXT "LOAD"         \  EOW('D')  \  .WORD $92A6
+    .TEXT "SAVE"         \  EOW('R')  \  .WORD $92B2
+    .TEXT "LOAD"         \  EOW('R')  \  .WORD $92BE
+    .TEXT "DI"           \  EOW('R')  \  .WORD $92CA
+    .TEXT "NODER"        \  EOW('R')  \  .WORD $92D6
+    .TEXT "VERI"         \  EOW('Q')  \  .WORD $92D9
+    .TEXT "CHAI"         \  EOW('N')  \  .WORD $92DC
+    .TEXT "CHAI"         \  EOW('C')  \  .WORD $92F5
+    .TEXT "CHAI"         \  EOW('Q')  \  .WORD $9305
+    .TEXT "KEYBOAR"      \  EOW('D')  \  .WORD $9308
+    .TEXT "KBEEOF"       \  EOW('F')  \  .WORD $9317
+    .TEXT "KBER"         \  EOW('R')  \  .WORD $9322
+    .TEXT "KTAS"         \  EOW('T')  \  .WORD $9323
+    .TEXT "KTASOF"       \  EOW('F')  \  .WORD $9339
+    .TEXT "KTAER"        \  EOW('R')  \  .WORD $934F
+    .TEXT "TRAC"         \  EOW('E')  \  .WORD $9350
+    .TEXT "TELEFO"       \  EOW('N')  \  .WORD $936D
+
+    .BYTE $FF,$00,$C5,$14,$00,$51,$D5
+
+
+; $9F82 - $9FFF 
+9F82   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9F8A   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9F92   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9F9A   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FA2   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FAA   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FB2   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FBA   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FC2   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FCA   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FD2   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FDA   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FE2   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FEA   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FF2   00 00 00 00 00 00 00 00    .BYTE  $00,$00,$00,$00,$00,$00,$00,$00
+9FFA   00 00 00 00 00 00          .BYTE  $00,$00,$00,$00,$00,$00
+
+;% LB_KEY END
+
+
+.END

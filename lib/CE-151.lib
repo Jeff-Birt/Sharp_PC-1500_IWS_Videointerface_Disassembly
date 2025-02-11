@@ -1,0 +1,4 @@
+ ; CE-151 library file
+RAM_ST            = $3000 ; Start of RAM w/CE-151, 4K RAM module
+RESMEM_ST         = $3008 ; Reserve memroy area w/CE-151 (3008-30C4)
+PRGMEM_ST         = $30C5 ; Start of program memory w/CE-151

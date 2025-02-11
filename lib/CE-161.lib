@@ -1,0 +1,4 @@
+ ; CE-161 library file
+RAM_ST            = $0000 ; Start of RAM w/CE-161, 16K RAM module, (0000-0007 header)
+RESMEM_ST         = $0008 ; Reserve memroy area w/CE-161 (0008-00C4)
+PRGMEM_ST         = $00C5 ; Start of program memory w/CE-161
