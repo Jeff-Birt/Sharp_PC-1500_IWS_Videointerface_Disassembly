@@ -1,0 +1,21 @@
+Unknown ME0 addresses:
+($79D5) - used as some sort of mode flag
+
+Unknown ME1 addresses:
+#($3000) - ??
+#($D400) - HW register? 
+#($D800) - ??
+#(VIDEORAM + $07D1) $77D1
+#(VIDEORAM + $07D2) $77D2
+#(VIDEORAM + $07D3) $77D3 
+#(VIDEORAM + $07D4) $77D4
+#(VIDEORAM + $07D6) $77D5
+#(VIDEORAM + $07D6) $77D6
+#(VIDEORAM + $07D7) $77D7
+#(VIDEORAM + $07D8) $77D8
+#(VIDEORAM + $07D9) $77D9
+#(VIDEORAM + $07DA) $77DA
+#(VIDEORAM + $07DB) $77DB
+#(VIDEORAM + $07E0) $77E0
+#(VIDEORAM + $07F4) $77F4
+#(VIDEORAM + $07F5) $77F5

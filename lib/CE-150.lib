@@ -55,6 +55,7 @@ LINE              = $B222 ; CE-150 LINE
 RLINE             = $B224 ; CE-150 RLINE
 LPRINT_150        = $B2EC ; CE-150 LPRINT
 LLIST_150         = $B754 ; CE-150 LLIST
+CMT_PNAME         = $B800 ; CMT Periph name (B800-B809), 55 01 43 4D 54 0D 0D 0D 0D 0D, U CMT /CR
 SBRA4             = $B888 ; SBR A4 Start of program block CMT 2
 SBRA8             = $B88B ; SBR A8
 SBRAA             = $B88E ; SBR AA
