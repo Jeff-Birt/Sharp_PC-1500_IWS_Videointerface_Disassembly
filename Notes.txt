@@ -1,8 +1,12 @@
 Unknown ME0 addresses:
-($79D5) - used as some sort of mode flag
+(STRING_VARS + $FE) $774E - Y cursor position
+(STRING_VARS + $FF) $774F - X cursor position
+($79D5) - used as some sort of mode flag. external KB flag?
 
 Unknown ME1 addresses:
 #($3000) - ??
+#(CRTCTRL) $7800 
+#(CRTCTRL + $01) $7801
 #($D400) - HW register? 
 #($D800) - ??
 #(VIDEORAM + $07D1) $77D1
@@ -16,6 +20,16 @@ Unknown ME1 addresses:
 #(VIDEORAM + $07D9) $77D9
 #(VIDEORAM + $07DA) $77DA
 #(VIDEORAM + $07DB) $77DB
-#(VIDEORAM + $07E0) $77E0
-#(VIDEORAM + $07F4) $77F4
-#(VIDEORAM + $07F5) $77F5
+#(VIDEORAM + $07DC) $77DC
+#(VIDEORAM + $07DD) $77DD
+#(VIDEORAM + $07DE) $77DE
+#(VIDEORAM + $07DF) $77DF
+#(VIDEORAM + $07E0) $77E0 ; Has to do with module box?
+#(VIDEORAM + $07E2) $77E2 ; 
+#(VIDEORAM + $07F0) $77F0 ; 
+#0VIDEORAM + $07F1) $77F1 ; *Start Address H
+#0VIDEORAM + $07F2) $77F2 ; *Start Address L
+#(VIDEORAM + $07F3) $77F3 ; *Cursor horizontal reg
+#(VIDEORAM + $07F4) $77F4 ; *Cursor vertical reg
+#(VIDEORAM + $07F5) $77F5 ; Light pen horizontal cursor position?
+#(VIDEORAM + $07F6) $77F6 ; Light pen vertical cursor position?

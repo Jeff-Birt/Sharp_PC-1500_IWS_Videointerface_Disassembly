@@ -262,6 +262,7 @@ ISARXBCD          = $DB87 ; Check AR-X for BCD format
 LOAD_NEXT         = $DCD4 ; Load next Token / character
 BCMD_TIME         = $DE82 ; Basic command TIME
 XREG2STRBUF       = $DFA1 ; Inserts string pointed to by X-Reg into string buffer. Jump if overflow.
+STRBUF_OK         = $DFB4 ; Checks if string buffer can hold #chars in Accumulator. No C=1.
 ARX2STRBUF        = $DFC4 ; Loads AR-X with a pointer to the string buffer.
 U_MINUS_X         = $DFE2 ; U-Reg = U-Reg - X-Reg. If overflow occurs C=0 and UH=16
 MEM_IN_UREG       = $DFEE ; Calculates the available memory space (MEM) in U-Reg.
