@@ -1,16 +1,17 @@
 Unknown ME0 addresses:
-(STRING_VARS + $FE) $774E - Y cursor position
-(STRING_VARS + $FF) $774F - X cursor position
-($79D5) - used as some sort of mode flag. external KB flag?
+(STRING_VARS + $FE) $774E ; Y cursor position
+(STRING_VARS + $FF) $774F ; X cursor position
+($79D5)                   ; Key repeat flag
+($79D6)                   ; unknown flag
 
 Unknown ME1 addresses:
-#($3000) - ??
-#(CRTCTRL) $7800 
-#(CRTCTRL + $01) $7801
-#($D400) - HW register? 
-#($D800) - ??
-#(VIDEORAM + $07D1) $77D1
-#(VIDEORAM + $07D2) $77D2
+#($3000)                  ; maybe mirror of #($6000) graphics RAM??
+#(CRTCTRL)       $7800    ; Register select
+#(CRTCTRL + $01) $7801    ; Register read/write
+#($D400)                  ; Video mode HW register? 
+#($D800)                  ; For Module box?
+#(VIDEORAM + $07D1) $77D1 ; 40/80 col mode. $50==80col, $19=40col
+#(VIDEORAM + $07D2) $77D2 ; Current text row??
 #(VIDEORAM + $07D3) $77D3 
 #(VIDEORAM + $07D4) $77D4
 #(VIDEORAM + $07D6) $77D5
@@ -18,18 +19,18 @@ Unknown ME1 addresses:
 #(VIDEORAM + $07D7) $77D7
 #(VIDEORAM + $07D8) $77D8
 #(VIDEORAM + $07D9) $77D9
-#(VIDEORAM + $07DA) $77DA
-#(VIDEORAM + $07DB) $77DB
-#(VIDEORAM + $07DC) $77DC
-#(VIDEORAM + $07DD) $77DD
-#(VIDEORAM + $07DE) $77DE
-#(VIDEORAM + $07DF) $77DF
+#(VIDEORAM + $07DA) $77DA ; Init $80 - Cursor Start Raster?
+#(VIDEORAM + $07DB) $77DB ; Init $07 - Cursor End Raster?
+#(VIDEORAM + $07DC) $77DC ; ??Only used once to store byte??
+#(VIDEORAM + $07DD) $77DD ; Background color
+#(VIDEORAM + $07DE) $77DE ; Character color
+#(VIDEORAM + $07DF) $77DF ; 
 #(VIDEORAM + $07E0) $77E0 ; Has to do with module box?
-#(VIDEORAM + $07E2) $77E2 ; 
-#(VIDEORAM + $07F0) $77F0 ; 
-#0VIDEORAM + $07F1) $77F1 ; *Start Address H
-#0VIDEORAM + $07F2) $77F2 ; *Start Address L
-#(VIDEORAM + $07F3) $77F3 ; *Cursor horizontal reg
-#(VIDEORAM + $07F4) $77F4 ; *Cursor vertical reg
+#(VIDEORAM + $07E2) $77E2 ; External KB flag
+#(VIDEORAM + $07F0) $77F0 ; Only used once, value loaded to A
+#0VIDEORAM + $07F1) $77F1 ; Only used once, value loaded to A
+#0VIDEORAM + $07F2) $77F2 ; Only used once, value loaded to A
+#(VIDEORAM + $07F3) $77F3 ; 
+#(VIDEORAM + $07F4) $77F4 ; Some sort of video mode flags
 #(VIDEORAM + $07F5) $77F5 ; Light pen horizontal cursor position?
 #(VIDEORAM + $07F6) $77F6 ; Light pen vertical cursor position?

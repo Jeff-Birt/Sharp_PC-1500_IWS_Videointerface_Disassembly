@@ -16,6 +16,7 @@ GRAPHRAM = $6800 ; $6800~$67FF ME1
 VIDEORAM = $7000 ; $7000-$77FF ME1
 CRTCTRL  = $7800 ; $7800-$7801 ME1
 NOTUSED  = $7802 ; $7802~$7FFF ME1
+KYREPEAT = $79D5 ; Key repeat flag
 
 .ORG $8000
 
@@ -242,7 +243,7 @@ BR_81D9: ; BR $81D4
     BZR  BR_81E9                    ; A <> $09
     SJP  (JMP_8929)                 ; $8929
     BCR  BR_822F                    ; JMP_8929 returned success (Carry reset)
-    SJP  (BR_8466)                  ; $8466
+    SJP  (JMP_8466)                  ; $8466
 
 BR_81E9: ; BR $81DF
     LDA  #(VIDEORAM + $07D3)        ; $77D3
@@ -257,7 +258,7 @@ BR_81F4: ; BR $81EF
     SJP  (JMP_84D7)                 ; $84D7
 
 BR_81FE: ; BR $81F9
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  YH                         ; 
     LDI  YL,$01                     ; 
     LDA  #(VIDEORAM + $07D8)        ; $77D8
@@ -283,9 +284,9 @@ BR_822F: ; BR $81C0, $81CD, $81E4
     ANI  (APOW_CTR_H),$00           ; Auto power down counter (H)
     ANI  (APOW_CTR_M),$00           ; Auto power down counter (M)
     ANI  (APOW_CTR_L),$00           ; Auto power down counter (L)
-    SJP  (JMP_9150)                 ; $9150
-    SJP  (JMP_90DE)                 ; $90DE
-    SJP  (CRTC_CSR_STRT)            ; $8963 CRTC - Cursor start raster register
+    SJP  (KEYRAM)                 ; $9150
+    SJP  (KEY_REPEAT_ON)                 ; $90DE
+    SJP  (CRTC_CSR_STRT20)          ; $8963 CRTC - Cursor start raster register
     PSH  A                          ; 
     LDA  (DISP_BUFF + $4E)          ; 
     ORI  A,$F7                      ; 
@@ -312,20 +313,20 @@ BR_8271: ; BR $824F, $8263
     POP  A                          ; 
     CPI  A,$1A                      ; 
     BZR  BR_827E                    ; A <> $1A
-    SJP  (JMP_8D41)                 ; $8D41
+    SJP  (CLR_VID_RAM)              ; $8D41
     POP  Y                          ; 
     BCH  XCHR_INPUT                 ; $819E
 
 BR_827E: ; BR $8275
     CPI  A,$0B                      ; 
     BZR  BR_8299                    ; A <> $0B
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ; 
     BZR  BR_8297                    ; A <> $28
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     CPI  A,$03                      ; 
     BCR  BR_8297                    ; A < $03
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
 
 BR_8297: ; BR $8288, $8290
     LDI  A,$0B                      ; 
@@ -336,27 +337,27 @@ BR_8299: ; BR $8280
     PSH  A                          ; 
     SJP  (JMP_86E4)                 ; $86E4
     BCS  BR_82A9                    ; JMP_86E4 returned failure (Carry set)
-    ADI  #(VIDEORAM + $07D2),$01    ; 
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
 
 BR_82A9: ; BR $82A2
     POP  A                          ; 
     ORI  #(VIDEORAM + $07DF),$01    ; $77DF
     LDI  A,$0A                      ; 
-    STA  #(CRTCTRL)                 ; 
+    STA  #(CRTCTRL)                 ; Cursor Start Raster
     LDA  #(VIDEORAM + $07DA)        ; $77DA
     STA  #(CRTCTRL + $01)           ; 
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     CPI  A,$00                      ; 
     BZR  BR_82D3                    ; A <> $00
     SJP  (JMP_9189)                 ; $9189
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
 
 BR_82D3: ; BR $82C9
     LDA  #(VIDEORAM + $07D9)        ; $77D9
     CPI  A,$99                      ; 
     BZR  BR_82E6                    ; A <> $99
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
     LDI  A,$02                      ; 
     STA  #(VIDEORAM + $07D9)        ; $77D9
 
@@ -367,19 +368,19 @@ BR_82E6: ; BR $82D9
 BR_82EA: ; BR $829B
     CPI  A,$0A                      ; 
     BZR  BR_8317                    ; A <> $0A
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ; 
     BZR  BR_8315                    ; A <> $28
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     CPI  A,$17                      ; 
     BCR  BR_8310                    ; A < $17
     SJP  (JMP_84D7)                 ; $84D7
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
 
 BR_8310: ; BR $82FC
-    ADI  #(VIDEORAM + $07D2),$01    ; 
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
 
 BR_8315: ; BR $82F4
     LDI  A,$0A                      ; 
@@ -390,7 +391,7 @@ BR_8317: ; BR $82EC
     PSH  A                          ; 
     SJP  (JMP_86FA)                 ; $86FA
     BCS  BR_8327                    ; JMP_86FA returned failure (Carry set)
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
 
 BR_8327: ; BR $8320
     POP  A                          ; 
@@ -402,7 +403,7 @@ BR_832E: ; BR $8319
     BII  #(VIDEORAM + $07DF),$01    ; $77DF
     BZS  BR_8343                    ; A == $
     ANI  #(VIDEORAM + $07DF),$00    ; $77DF
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
 
 BR_8343: ; BR $8330, $8337
     CPI  A,$08                      ; 
@@ -410,7 +411,7 @@ BR_8343: ; BR $8330, $8337
     BII  #(VIDEORAM + $07DF),$01    ; $77DF 
     BZS  BR_8358                    ; Bit 0 of #$77DF was set
     ANI  #(VIDEORAM + $07DF),$00    ; Clear $77DF
-    ADI  #(VIDEORAM + $07D2),$FF    ; Set $77D2 to $FF
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
 
 BR_8358: ; BR $8345, $834C
     CPI  A,$0E                      ; 
@@ -428,7 +429,7 @@ BR_8367: ; BR $8363
 
 BR_836B: ; BR $8365
     PSH  A                          ; 
-    SJP  (JMP_8D41)                 ; $8D41
+    SJP  (CLR_VID_RAM)              ; $8D41
     POP  A                          ; 
     BCH  BR_83BB                    ; $83BB
 
@@ -500,10 +501,10 @@ JMP_83C6:
     LDI  A,$0D                      ; '/CR'
     CPA  #(VIDEORAM + $07D3)        ; $77D3
     BZR  BR_83E5                    ; $0D <> ($77D3)
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$50                      ; 'P'
     BZS  BR_83F0                    ; A == $50
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
     BCH  BR_8417                    ; $8417
     
 BR_83E5:   
@@ -515,12 +516,12 @@ BR_83E5:
     BZS  BR_841F                    ; YL == $3C
 
 BR_83F0: ; BR $83DC,$841D,$8425,$8428,$844D,$8454
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 (pp) = (pp) + n (ME1)
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row, (pp) = (pp) + n (ME1)
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ; 
     BZR  BR_8417                    ; A <> $28
     PSH  Y                          ; 
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     DEC  A                          ; 
     STA  YH                         ;
     LDI  YL,$28                     ;
@@ -529,7 +530,7 @@ BR_83F0: ; BR $83DC,$841D,$8425,$8428,$844D,$8454
     POP  Y                          ;
     CPI  A,$0E                      ; 
     BCR  BR_8417                    ; A < $0E
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
 
 BR_8417: ; BR $83CC,$83E3,$83FB,$8410,$842B,$8442,$844B,$8452
     LDA  YL                         ;
@@ -555,7 +556,7 @@ JMP_842D: ; BR $838A
     RTN                             ; Done
 
 BR_8435: ; BR $8432
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
     RTN                             ; Done
 ;% LB_xxxx END
 ;------------------------------------------------------------------------------------------------------------
@@ -595,11 +596,23 @@ JMP_8456: ; BR $8229
 BR_845E:  ; BR $845B
     LDA  (CURS_BLNK_POS)            ; $787B - Position of blink character in display, plus 8
     CPI  A,$09                      ; 
-    BCR  BR_8466                    ; A < $09
+    BCR  JMP_8466                    ; A < $09
     RTN                             ; Done
+;% LB_XCHR_INPUT END
+;------------------------------------------------------------------------------------------------------------
 
-BR_8466: ; BR $81E6,$8463,$8949
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+
+
+;------------------------------------------------------------------------------------------------------------
+; $84366- xxxx - 
+; Called from: $8395,$839C
+; Arguments: 
+; Outputs: 
+; RegMod: Y
+;------------------------------------------------------------------------------------------------------------
+;% LB_xxxx START
+JMP_8466: ; BR $81E6,$8463,$8949
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  YH                         ; 
     LDI  YL,$01                     ; 
     SJP  (JMP_8D6B)                 ; $8D6B
@@ -610,11 +623,12 @@ BR_8466: ; BR $81E6,$8463,$8949
     LDI  UH,$0D                     ; 
     LDI  A,$40                      ; 
     AND  (DISP_BUFF + $4F)          ; $764F 
-    CPI  A,$40                      ; (DISP_BUFF + $4F) == $40
+    CPI  A,$40                      ; Bit 6 set
     BZR  BR_8494                    ; A <> $40
+
     BII  #(VIDEORAM + $07F3),$01    ; FLAGS = (pp) & n (ME1)
     BCS  BR_848D                    ; $848D
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
 
 BR_848D: ; BR $8486
     ANI  #(VIDEORAM + $07F3),$00    ; $77F3
@@ -624,17 +638,19 @@ BR_8494: ; BR $847F
     ANI  #(VIDEORAM + $07F3),$00    ; $77F3
     LDI  A,$20                      ; 
     AND  (DISP_BUFF + $4F)          ; 
-    CPI  A,$20                      ; 
+    CPI  A,$20                      ; Bit 5 set?
     BZS  BR_84BB                    ; $84BB
+
     LDI  A,$10                      ; 
     AND  (DISP_BUFF + $4F)          ; 
-    CPI  A,$10                      ; 
+    CPI  A,$10                      ; Bit 4 set?
     BZR  BR_84D4                    ; $84D4
+
     LDI  A,$06                      ; 
     ADR  X                          ; X = X + A + Carry
     LDI  UL,$0D                     ; 
-    SJP  (JMP_88FD)                 ; $88FD
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
+    SJP  (JMP_88FD)                 ; Checks bits set in (DISP_BUFF + $4E) $764E
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
     BCH  BR_84C5                    ; $84C5
 
 BR_84BB:  ; BR $8492,$84A0
@@ -651,7 +667,7 @@ BR_84C5: ; BR $84B9
     STA  #(Y)                       ; 
     INC  Y                          ; 
     SJP  (CPY_X2Y)                  ; $8D64 - Copies UL bytes from X to Y
-    SJP  (CRTC_CSR_STRT)            ; $8963 - CRTC Cursor start raster
+    SJP  (CRTC_CSR_STRT20)            ; $8963 - CRTC Cursor start raster
     INC  Y                          ; 
     LDA  UH                         ; 
     STA  #(Y)                       ; 
@@ -674,7 +690,7 @@ BR_84D4: ; BR $84A9
 ;% LB_xxxx START
 JMP_84D7: ; BR $819D6,$81FB,$82FE,$875F,$87C8,$8890,$8BA7,$8BEA
     STA  YL
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $28==40col
     CPI  A,$28                      ; 
     BZS  BR_84E6                    ; If A == $28, 40 col mode?
 
@@ -691,7 +707,7 @@ BR_84E6: ; BR $84DE,$84E2
     CPI  A,$28                      ; Column 40
     BZR  BR_84FD                    ; If A <> $28
 
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     CPI  A,$19                      ; Line 25
     BZS  BR_84FD                    ; If A == $19
 
@@ -720,7 +736,7 @@ BR_8511: ; BR $8514
     INC  Y                          ;
     LOP  UL,BR_8511                 ; $8511
 
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $28==40col
     CPI  A,$28                      ; 
     BZR  BR_8522                    ; A <> $28
 
@@ -731,7 +747,7 @@ BR_8522: ; BR $851c
     LDI  A,$19                      ; 
 
 BR_8524: ; BR $8520
-    STA  #(VIDEORAM + $07D2)        ; $77D2
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  (STRING_VARS + $FE)        ; $774E in DISPLAY BUFFER, Y cursor position
     RTN                             ; Done
 ;% LB_xxxx END
@@ -967,17 +983,17 @@ JMP_8663: ; BR $8226
     LDA  (DISPARAM)                 ; Display Parameter: determines display at READY
     CPI  A,$80                      ; Bit 7: Error message is in the display
     BZR  BR_866D                    ; $866D
-    JMP  CRTC_CSR_STRT              ; $8963 CRTC - Cursor start raster
+    JMP  CRTC_CSR_STRT20              ; $8963 CRTC - Cursor start raster
 
 BR_866D: ; BR $8668
     CPI  A,$A0                      ; Bit 7: Error message is in the display, Bit 5: Result from AR-X is displayed
     BZR  BR_8674                    ; A <> $A0
-    JMP  CRTC_CSR_STRT              ; $8963 CRTC - Cursor start raster
+    JMP  CRTC_CSR_STRT20              ; $8963 CRTC - Cursor start raster
 
 BR_8674: ; BR $866F
     CPI  A,$01                      ; Bit 0: The input buffer was temporarily stored. A system message or a reserve text is shown in the display
     BZR  BR_867B                    ; A <> $01
-    JMP  CRTC_CSR_STRT              ; $8963 CRTC - Cursor start raster
+    JMP  CRTC_CSR_STRT20              ; $8963 CRTC - Cursor start raster
 
 
 BR_867B: ; BR $8676
@@ -986,11 +1002,11 @@ BR_867B: ; BR $8676
     LDA  #(VIDEORAM + $07D5)        ; $77D5
     STA  YL                         ; 
     LDI  A,$0E                      ; 
-    STA  #(CRTCTRL)                 ; 
+    STA  #(CRTCTRL)                 ; Cursor H (horizontal)
     LDA  YH                         ; 
     STA  #(CRTCTRL + $01)           ; 
     LDI  A,$0F                      ; 
-    STA  #(CRTCTRL)                 ; 
+    STA  #(CRTCTRL)                 ; Cursor L (vertical)
     LDA  YL                         ; 
     STA  #(CRTCTRL + $01)           ; 
     LDA  #(VIDEORAM + $07DA)        ; $77DA
@@ -1011,11 +1027,11 @@ BR_86B6: ; BR $8668
 
 BR_86C1: ; BR $86BA
     LDI  A,$0A                      ; 
-    STA  #(CRTCTRL)                 ; 
+    STA  #(CRTCTRL)                 ; Cusor Start Raster
     LDA  #(VIDEORAM + $07DA)        ; $77DA
     STA  #(CRTCTRL + $01)           ; 
     LDI  A,$0B                      ; 
-    STA  #(CRTCTRL)                 ; 
+    STA  #(CRTCTRL)                 ; Cursor End Raster
     LDA  #(VIDEORAM + $07DB)        ; $77DB
     ANI  A,$1F                      ; 
     STA  #(CRTCTRL + $01)           ; 
@@ -1125,7 +1141,7 @@ JMP_8721: ; BR $822C
     RTN                             ; Done
 
 BR_8741: ; BR $873E
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ; 
     BZS  BR_874A                    ; A == $28
     RTN                             ; Done
@@ -1137,15 +1153,15 @@ BR_874A: ; BR $8747
     RTN                             ; Done
 
 BR_8752: ; BR $8728,$872C,$8730,$8734
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row, (pp) = (pp) + n (ME0)
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     CPI  A,$19                      ; 
     BCR  BR_8762                    ; A < $19
     SJP  (JMP_84D7)                 ; $84D7
 
 BR_8762: ; BR $875D
     SJP  (JMP_87D4)                 ; $87D4
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  YH                         ; 
     LDI  YL,$01                     ; 
     SJP  (JMP_8D6B)                 ; $8D6B
@@ -1190,7 +1206,7 @@ BR_87A3: ; BR $879F
     BCH  BR_8799                    ; $8799
 
 BR_87A5: ; BR $879B
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ;
     BZS  BR_87AE                    ; A == $28
     RTN                             ; Done
@@ -1207,8 +1223,8 @@ BR_87B3: ; BR $87B0
     RTN                             ; Done
 
 BR_87BB: ; BR $874F,$87B8,$8791,$87E5
-    ADI  #(VIDEORAM + $07D2),$01    ; $77D2
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - inc text row
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     CPI  A,$19                      ; 
     BCR  BR_87CB                    ; A < $19
     SJP  (JMP_84D7)                 ; $84D7
@@ -1224,7 +1240,7 @@ JMP_87CC: ; BR $81F1
     RTN                             ; Done
 
 JMP_87D4: ; BR $8762
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ; 
     BZS  BR_87DD                    ; A == $28
     RTN                             ; Done
@@ -1278,7 +1294,7 @@ BR_8807: ; BR $8803
     PSH  X                          ; 
     PSH  Y                          ; 
     PSH  U                          ; 
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  YH                         ; 
     LDI  YL,$01                     ; 
     LDA  #(VIDEORAM + $07D8)        ; $77D8
@@ -1286,7 +1302,7 @@ BR_8807: ; BR $8803
     BZR  BR_8824                    ; If A <> $01
     LDA  (STRING_VARS + $FE)        ; $774E in DISPLAY BUFFER, Y cursor position
     STA  YH                         ; 
-    LDA  (STRING_VARS + $FF)        ; $774F in DISPLAY BUFFER
+    LDA  (STRING_VARS + $FF)        ; $774F in DISPLAY BUFFER, X cursor position
     STA  YL                         ; 
 
 BR_8824: ; BR $881A
@@ -1358,7 +1374,7 @@ BR_8865: ; BR $8862
     LDA  XH                         ; 
     SBC  (SHADOW_RAM)               ; $7000
     STA  XH                         ; 
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$50                      ; 
     BZR  BR_8886                    ; If A <> $50
     CPI  XH,$07                     ; 
@@ -1376,18 +1392,21 @@ BR_8886: ; BR $887C
 BR_888C: ; BR $8884,$8888
     BCR  BR_88AE                    ; $88AE
     LDI  A,$1A                      ; 
-    SJP  (JMP_84D7)                 ; $84D7
+    SJP  (JMP_84D7)                 ; Block copies video RAM?
+
     LDA  (STRING_VARS + $FE)        ; $774E DISPLAY BUFFER, Y cursor position
     STA  YH                         ;
     LDI  YL,$01                     ;
-    SJP  (JMP_8D6B)                 ; $8D6B
+    SJP  (JMP_8D6B)                 ; Not sure, twiddles Y
+
     POP  X                          ; 
     PSH  Y                          ; 
-    SJP  (JMP_88B5)                 ; $88B5
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    SJP  (JMP_88B5)                 ; Sets #$77D2, $774E to $FF??
+
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$50                      ;
     BZS  BR_88AE                    ; If A == $50
-    SJP  (JMP_88B5)                 ; $88B5
+    SJP  (JMP_88B5)                 ; Sets #$77D2, $774E to $FF??
 
 BR_88AE: ; BR $888C,$88A9
     POP  X                          ; 
@@ -1408,7 +1427,7 @@ BR_88AE: ; BR $888C,$88A9
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_xxxx START
 JMP_88B5: 
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2, (pp) = (pp) + n (ME1) 
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row, (pp) = (pp) + n (ME1) 
     ADI  (STRING_VARS + $FE),$FF    ; $774E in DISPLAY BUFFER, Y cursor position, (pp) = (pp) + n (ME0)
     RTN                             ; Done
 ;% LB_xxxx END
@@ -1436,7 +1455,7 @@ JMP_88BF:
 
 BR_88CC: ; BR $88E3
     INC  UL                         ; 
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  XH,$00                     ; 
     BZR  BR_88DA                    ; If A <> $00
     CPA  XL                         ; 
@@ -1456,7 +1475,7 @@ BR_88DA: ; BR $88D3,$88D6
 
 BR_88E5: ; BR $88D8
     LDA  UL
-    STA  #(VIDEORAM + $07D2)        ; $77D2
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     RTN                             ; Done
 ;% LB_xxxx END
 ;------------------------------------------------------------------------------------------------------------
@@ -1467,19 +1486,20 @@ BR_88E5: ; BR $88D8
 ; xxxx
 ; Called from: 
 ; Arguments: 
-; Outputs: 
-; RegMod: 
+; Outputs: A
+; RegMod: A
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_xxxx START
 JMP_88EB: ; BR $81CF,$81F4
     LDA  #(VIDEORAM + $07D8)        ; $77D8
     CPI  A,$01                      ; 
     BZR  BR_88F8                    ; If A == $01
+
     LDA  (STRING_VARS + $FE)        ; $774E  DISPLAY BUFFER, Y cursor position
     BCH  BR_88FC                    ; $88FC
 
 BR_88F8: ; BR $88F1
-    LDA  #(VIDEORAM + $07D2)        ; $77D2
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
 
 BR_88FC: ; BR $88F6
     RTN                             ; Done
@@ -1493,32 +1513,32 @@ BR_88FC: ; BR $88F6
 ; Called from: 
 ; Arguments: 
 ; Outputs: 
-; RegMod: 
+; RegMod: UH, A
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_xxxx START
 JMP_88FD: ; BR $84B1
     LDI  UH,$33                     ; 
     LDI  A,$10                      ; 
     AND  (DISP_BUFF + $4E)          ; 
-    CPI  A,$10                      ; 
+    CPI  A,$10                      ; Was Bit 4 set
     BZR  BR_8909                    ; If A <> $10
     RTN                             ; 
 
 BR_8909: ; BR $8906
-    DEC  UH                         ;
+    DEC  UH                         ; UH == $32
     LDI  A,$20                      ; 
     AND  (DISP_BUFF + $4E)          ; 
-    CPI  A,$20                      ; 
+    CPI  A,$20                      ; Was bit 5 set
     BZR  BR_8915                    ; If A <> $20
     RTN                             ; 
 
 BR_8915: ; BR $8912
-    DEC  UH                         ;
+    DEC  UH                         ; UH == $31
     LDI  A,$40                      ; 
     AND  (DISP_BUFF + $4E)          ; 
-    CPI  A,$40                      ; 
+    CPI  A,$40                      ; Was Bit 6 set
     BZR  BR_8926                    ; If A <> $40
-    ANI  #(VIDEORAM + $07DF),$00    ; $77DF
+    ANI  #(VIDEORAM + $07DF),$00    ; $77DF - Clear
     RTN                             ; 
 
 BR_8926: ; BR $891E
@@ -1530,7 +1550,7 @@ BR_8926: ; BR $891E
 
 
 ;------------------------------------------------------------------------------------------------------------
-; xxxx
+; $8929 xxxx - 
 ; Called from: BR $8241,$84CD,$866A,$8671,$8678,$8A98
 ; Arguments: 
 ; Outputs: 
@@ -1544,18 +1564,20 @@ JMP_8929: ; BR $81E1
     BZS  BR_894E                    ; If Bit 6 of A was not set
     LDA  (DISPARAM)                 ; $7880 - Display Parameter: determines display at READY
     ANI  A,$01                      ; 
-    CPI  A,$01                      ; Bit 0: The input buffer was temporarily stored. A system message or a reserve text is shown in the display.
+    CPI  A,$01                      ; Bit 0: The input buffer was temporarily stored. 
+                                    ; A system message or a reserve text is shown in the display.
     BZS  BR_8940                    ; If A == $01
-    SEC                             ; 
+    SEC                             ; Failure ? 
     RTN                             ; Done
 
 BR_8940: ; BR $893C
     LDA  (DISPARAM)                 ; $7880 - Display Parameter: determines display at READY
     ANI  A,$01                      ; 
-    CPI  A,$01                      ; Bit 0: The input buffer was temporarily stored. A system message or a reserve text is shown in the display.
+    CPI  A,$01                      ; Bit 0: The input buffer was temporarily stored. 
+                                    ; A system message or a reserve text is shown in the display.
     BZR  BR_894E                    ; If A <> $01
-    SJP  (BR_8466)                  ; $8466
-    REC                             ; 
+    SJP  (JMP_8466)                 ; $8466 ??
+    REC                             ; Success?
     RTN                             ; Done
 
 BR_894E: ; BR $8933,$8947
@@ -1568,7 +1590,7 @@ BR_894E: ; BR $8933,$8947
 
 BR_8959:
     SJP  (JMP_8C57)                 ; $8C57
-    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
     REC                             ; 
     RTN                             ; Done
 ;% LB_xxxx END
@@ -1577,14 +1599,14 @@ BR_8959:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $8963 CRTC_CSR_STRT - CRTC - Cursor start raster register
+; $8963 CRTC_CSR_STRT20 - CRTC - Cursor start raster register
 ; Called from: BR $8241,$84CD,$866A,$8671,$8678,$8A98
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
-;% LB_CRTC_CSR_STRT START
-CRTC_CSR_STRT:
+;% LB_CRTC_CSR_STRT20 START
+CRTC_CSR_STRT20:
     PSH  A                          ; 
     LDI  A,$0A                      ; CRTC - Cursor start raster register
     STA  #(CRTCTRL)                 ; &7800
@@ -1592,7 +1614,7 @@ CRTC_CSR_STRT:
     STA  #(CRTCTRL + $01)           ; $7801
     POP  A                          ; 
     RTN                             ; 
-;% LB_CRTC_CSR_STRT START
+;% LB_CRTC_CSR_STRT20 START
 ;------------------------------------------------------------------------------------------------------------
 
 
@@ -1607,22 +1629,36 @@ CRTC_CSR_STRT:
 ;% LB_CLS START
 CLS: 
     PSH  Y                          ; 
-    SJP  (JMP_8D41)                 ; $8D41
+    SJP  (CLR_VID_RAM)              ; $8D41
     ANI  #(VIDEORAM + $07D3),$00    ; $77D3
     POP  Y                          ; 
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
+;% LB_CLS END
+;------------------------------------------------------------------------------------------------------------
 
-    SJP  ($DFB4)                    ; $DFB4 (STRBUF_OK)
+
+
+;------------------------------------------------------------------------------------------------------------
+; $8981 HEXSTR (HEX$) - Convert int to hex string
+; Called from: 
+; Arguments: A, AR-X
+; Outputs: 
+; RegMod: 
+;------------------------------------------------------------------------------------------------------------
+;% LB_HEXSTR START
+HEXSTR:
+    SJP  (STRBUF_OK)                ; $DFB4 Checks if string buffer can hold #chars in A. No C=1.
     VEJ  (D0) \ 
-        ABYT($00) \ ABRF(BR_89A0)   ; (D0) Convert AR-X to Integer & load in U-Reg. Area check by D1, if exceeded branch
+        ABYT($00) \ ABRF(BR_89A0)   ; (D0) Convert AR-X to Integer & load in U-Reg. Range D1 (65535), if exceeded branch
     CPI  UH,$00                     ; 
     BZS  BR_898F                    ; UH == $00
+
     LDA  UH                         ; 
-    SJP  (BR_8981)                  ; $89A1
+    SJP  (NIBBLE_2STR)              ; Convert UH to string
 
 BR_898F:
     LDA  UL                         ; 
-    SJP  (BR_8981)                  ; $89A1
+    SJP  (NIBBLE_2STR)              ; Convert UL to string
     LDI  UL,$04                     ; 
     CPI  UH,$00                     ; 
     BZR  BR_899B                    ; UH == $00
@@ -1634,8 +1670,20 @@ BR_899B:
 
 BR_89A0: 
     RTN                             ; Done
+;% LB_HEXSTR END
+;------------------------------------------------------------------------------------------------------------
 
-BR_8981: ; Entry for HEX$? HEX$ Num.Exp
+
+
+;------------------------------------------------------------------------------------------------------------
+; $89A1 NIBBLE_2STR - Convert Nibble to hex string
+; Called from: 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;------------------------------------------------------------------------------------------------------------
+;% LB_NIBBLE_2STR START
+NIBBLE_2STR: 
     PSH  A                          ; 
     AEX                             ; Accumulator High nibble & low nibble swapped
     SJP  (BR_89A9)                  ; $89A9
@@ -1651,15 +1699,16 @@ BR_89A9:
 BR_89B3: 
     SIN  Y                          ; (Y) = A. Then Y = Y + 1
     RTN                             ;
-;% LB_CLS END
+;% LB_NIBBLE_2STR END
 ;------------------------------------------------------------------------------------------------------------
 
 
 
 ;------------------------------------------------------------------------------------------------------------
-; CONSOLE - 
+; $89B5 CONSOLE - Sets 40 or 80 column mode
+; USAGE: 'CONSOLE 40', 'CONSOLE 80'
 ; Called from 
-; Arguments: 
+; Arguments: Y
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
@@ -1669,7 +1718,7 @@ CONSOLE:
     CPI  A,$49                      ; 
     BZR  BR_89C4                    ; A <> $49 'I'
     ORI  #(VIDEORAM + $07F4),$02    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)
     INC  Y                          ;
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
@@ -1677,76 +1726,78 @@ BR_89C4:
     CPI  A,$4E                      ; 
     BZR  BR_89D2                    ; A <> $4E 'N'
     ANI  #(VIDEORAM + $07F4),$05    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)
     INC  Y                          ; 
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
 BR_89D2:
     VEJ  (DE) \ ABRF(BR_8A48)       ; (DE) Calculates formula pointed to by Y-Reg, passes the result to AR-X. 
     VEJ  (D0) \ 
-        ABYT($06) \ ABRF(BR_8A48 )  ; (D0) Convert AR-X to Integer & load in U-Reg. Area check by D1, if exceeded branch
+        ABYT($06) \ ABRF(BR_8A48)   ; (D0) Convert AR-X to Integer & load in U-Reg. Range check D1 (32767), if exceeded branch
     LDA  UL                         ; 
     CPI  A,$01                      ; 
     BZR  BR_89E5                    ; A <> $01
     ANI  #(VIDEORAM + $07F4),$03    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
 BR_89E5:
     CPI  A,$02                      ; 
     BZR  BR_89F2                    ; A <> $02
     ORI  #(VIDEORAM + $07F4),$04    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
 BR_89F2:
     CPI  A,$00                      ; 
     BZR  BR_8A07                    ; A <> $07
     ANI  #(VIDEORAM + $07F4),$00    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
-    LDI  XH,$8E                     ; ***In unknown table
-    LDI  XL,$A1                     ; 
-    SJP  (CRTC_INIT)                 ; $8DA8
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)
+    LDI  XH,HB(CONFIG_TBL + $12)    ; $8E
+    LDI  XL,LB((CONFIG_TBL) + $12)  ; $A1
+    SJP  (CRTC_INIT)                ; $8DA8
     BCH  CLS                        ; 
 
-BR_8A07:
+BR_8A07: 
     LDA  UL                         ; 
     CPI  A,$50                      ; 
-    BZS  BR_8A27                    ; A <> $50
+    BZS  BR_8A27                    ; A == $50 == 80col
     CPI  A,$28                      ; 
     BZR  BR_8A46                    ; A <> $28
-    ORI  #(VIDEORAM + $07F4),$01    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
-    LDI  XH,$8E                     ; *** start of unknown table
-    LDI  XL,$8F                     ; 
-    SJP  (CRTC_INIT)                 ; $8DA8
+    ORI  #(VIDEORAM + $07F4),$01    ; $77F4, else 40 col mode
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)
+    LDI  XH,HB(CONFIG_TBL)          ; $8E  
+    LDI  XL,LB(CONFIG_TBL)          ; $8F
+    SJP  (CRTC_INIT)                ; $8DA8
     LDI  A,$28                      ; 
-    STA  #(VIDEORAM + $07D1)        ; $77D1
+    STA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $28==40col
     BCH  CLS                        ; 
 
 BR_8A27:
-    ANI  #(VIDEORAM + $07F4),$06    ; $77F4
-    SJP  (JMP_8A38)                 ; $8A38
-    LDI  XH,$8E                     ; *** in unknown table
-    LDI  XL,$A1                     ; 
-    SJP  (CRTC_INIT)                 ; $8DA8
+    ANI  #(VIDEORAM + $07F4),$06    ; $77F4, 80 col mode
+    SJP  (JMP_8A38)                 ; Stores #(VIDEORAM + $07F4)  to #($D400)           
+    LDI  XH,HB(CONFIG_TBL + $12)    ; $8E
+    LDI  XL,LB((CONFIG_TBL) + $12)  ; $A1 
+    SJP  (CRTC_INIT)                ; $8DA8
     BCH  CLS                        ; 
+
 
 JMP_8A38:
     LDA  #(VIDEORAM + $07F4)        ; $77F4
     STA  #($D400)                   ; ***
     RTN                             ; 
 
+
 ;$8A41: 
-    SJP  (CRTC_INIT); $8DA8           ; Dead code?
-    BCH  CLS                        ;
+    SJP  (CRTC_INIT)                ; $8DA8 Dead code?
+    BCH  CLS                        ;       Dead code?
 
 BR_8A46: ; BR $8A0E
     LDI  UH,$13                     ; 
 
 BR_8A48:
     VEJ  (E0)                       ; (E0) Returns error message if UH is not 00
-;% LB_CONSOLE ND
+;% LB_CONSOLE END
 ;------------------------------------------------------------------------------------------------------------
 
 
@@ -1765,7 +1816,7 @@ CURSOR:
     VEJ  (DE) \ ABRF(BR_8A8A)       ; (DE) Calculates formula pointed to by Y-Reg, passes the result to AR-X. 
     VEJ  (D0) \ 
         ABYT($0C) \ ABRF(BR_8A8A)   ; (D0) Convert AR-X to Int, load in U-Reg. If range of D1 (80d) exceeded branch
-    LDA  #(VIDEORAM + $07D1)        ; $77D1
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     DEC  A                          ; 
     CPA  UL                         ; U = X position?
     BCR  BR_8A59                    ; A < UL Error exit
@@ -1820,7 +1871,7 @@ BR_8A8A:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $8A8B xxxx - 
+; $8A8B xxxx - Something to do with PRINT USING?
 ; Called from: PRINT:$91B8
 ; Arguments: 
 ; Outputs: 
@@ -1830,9 +1881,10 @@ BR_8A8A:
 JMP_8A8B:
     LDI  A,$60                      ; 
     STA  (OUTBUF_PTR)               ; $788F Pointer into OUT_BUF
-    SJP  (JMP_8C4A)                 ; $8C4A
+    SJP  (CRTC_CSR_STRT10)          ; $8C4A - Set Cursor Start Raster register to $10
+
     ORI  #(VIDEORAM + $07F3),$01    ; $77F3 Set Bit 0
-    SJP  (CRTC_CSR_STRT)            ; $8963 CRTC - Cursor start raster
+    SJP  (CRTC_CSR_STRT20)          ; $8963 - Set Cursor Start Raster register to $20
     LDI  A,$00                      ; 
     LDI  UL,$4F                     ; 
     LDI  XH,HB(OUT_BUF)             ; $7B X=$7B60 start of OUT_BUF
@@ -2051,7 +2103,7 @@ BR_8BC0:
     INC  Y                          ; 
     ADI  (STRING_VARS + $FF),$01    ; $774F in DISPLAY BUFFER, X cursor position
     LDA  (STRING_VARS + $FF)        ; $774F in DISPLAY BUFFER, X cursor position
-    CPA  #(VIDEORAM + $07D1)        ; $77D1
+    CPA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     BCR  BR_8BFC                    ; $8BFC
     BZS  BR_8BFC                    ; $8BFC
     ANI  (STRING_VARS + $FF),$01    ; $774F in DISPLAY BUFFER, X cursor position
@@ -2101,7 +2153,7 @@ BR_8C29:
     CPI  A,$02                      ; 
     BZS  BR_8C3F                    ; $8C3F
     LDA  (STRING_VARS + $FE)        ; $774E in DISPLAY BUFFER, Y cursor position
-    STA  #(VIDEORAM + $07D2)        ; $77D2
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
 JMP_8C38:
@@ -2122,20 +2174,20 @@ BR_8C3F:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $8C4A xxxx - Reset/Init CRT Controller
+; $8C4A CRTC_CSR_STRT10 - Set Cursor Start Raster register to $10
 ; Called from: JMP_8A8B:$8A90
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
-;% LB_xxxx START
-JMP_8C4A:
+;% LB_CRTC_CSR_STRT10 START
+CRTC_CSR_STRT10:
     LDI  A,$0A                      ; 0000 1010b
-    STA  #(CRTCTRL)                 ; 
+    STA  #(CRTCTRL)                 ; Cursor Start Raster
     LDI  A,$10                      ;
     STA  #(CRTCTRL + $01)           ; 0001 0000b
     RTN                             ; Done
-;% LB_xxxx START
+;% LB_CRTC_CSR_STRT10 START
 ;------------------------------------------------------------------------------------------------------------
 
 
@@ -2162,7 +2214,7 @@ BR_8C62:
                                     ; Sets C=0 if the 2nd reserve memory area is occupied
     LDI  UH,$02                     ; 
     LDI  UL,$19                     ; U = $0219
-    LDA  #(VIDEORAM + $07D2)        ; 
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  YH                         ; 
     LDI  YL,$01                     ; 
     SJP  (JMP_8D6B)                 ; $8D6B - no idea
@@ -2171,7 +2223,7 @@ BR_8C72:
     SJP  (CPY_X2Y)                  ; $8D64 - Copies UL bytes from X to Y
     DEC  UH                         ; 
     BCS  BR_8C80                    ; $8C80
-    ADI  #(VIDEORAM + $07D2),$01    ; 
+    ADI  #(VIDEORAM + $07D2),$01    ; $77D2 - text row
     SEC                             ; Set Carry == failure?
     RTN                             ; Done
 
@@ -2218,7 +2270,7 @@ BR_8C95:
     LDI  YH,HB(IN_BUF)              ; $7B
     PSH  A                          ; 
     LDA  (STRING_VARS + $FE)        ; $774E in DISPLAY BUFFER, Y cursor position
-    STA  #(VIDEORAM + $07D2)        ; 
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     POP  A                          ; 
     ADI  (STRING_VARS + $FE),$01    ; $774E in DISPLAY BUFFER, Y cursor position, (pp) = (pp) + n (ME0)
     LDA  (ARX + $07)                ; 
@@ -2266,7 +2318,7 @@ BR_8CD1:
 BR_8CFB:
     PSH  A                          ; 
     LDA  (STRING_VARS + $FE)        ; $774E in DISPLAY BUFFER, Y cursor position
-    STA  #(VIDEORAM + $07D2)        ; 
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     POP  A                          ; 
     ADI  (STRING_VARS + $FE),$01    ; $774E in DISPLAY BUFFER, Y cursor position
     VEJ  (C6)                       ; (C6) Correct program pointer
@@ -2288,7 +2340,7 @@ JMP_8D18:
     SJP  (WAIT4KB)                  ; 
     BII  #(VIDEORAM + $07F3),$01    ; 
     BZR  BR_8D39                    ; 
-    ADI  #(VIDEORAM + $07D2),$FF    ; 
+    ADI  #(VIDEORAM + $07D2),$FF    ; $77D2 - text row
 
 BR_8D39:
     ANI  #(VIDEORAM + $07F3),$00    ; 
@@ -2297,45 +2349,47 @@ BR_8D39:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $8D41 xxxx 
+; $8D41 CLR_VID_RAM - Clears video RAM? 
 ; Called from: 
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
-;% LB_xxxx START
-JMP_8D41:
+;% LB_CLR_VID_RAM START
+CLR_VID_RAM:
     LDI  UH,$07                     ; 
-    LDI  UL,$CF                     ; $07CF
+    LDI  UL,$CF                     ; U == $07CF
     LDI  A,$00                      ; 
     SJP  (Y2_VIDRAM)                ; $8E5F - Sets Yreg to point to Video RAM
 
 BR_8D4A:
-    SJP  (BR_8D5E)                  ; Clear video RAM page
-    DEC  UH                         ; 
+    SJP  (CLR_VIDRAMPAGE)           ; Clear video RAM page
+
+    DEC  UH                         ; U == $07CE
     BCS  BR_8D4A                    ; $8D4A
+
     LDI  A,$01                      ; 
-    STA  #(VIDEORAM + $07D2)        ; 
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     STA  (STRING_VARS + $FE)        ; $774E in DISPLAY BUFFER, Y cursor position
     STA  (STRING_VARS + $FF)        ; $774F in DISPLAY BUFFER, X cursor position
     RTN                             ; Done
-;% LB_xxxx END   
+;% LB_CLR_VID_RAM END   
 ;------------------------------------------------------------------------------------------------------------
 
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $8D5E CLR_VIDRAM - Clear Video RAM page
+; $8D5E CLR_VIDRAMPAGE - Clear Video RAM page
 ; Called from: 
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_CLR_VIDRAM START
-BR_8D5E:
+CLR_VIDRAMPAGE:
     STA  #(Y)                       ; 
     INC  Y                          ; 
-    LOP  UL,BR_8D5E                 ; $8D5E
+    LOP  UL,CLR_VIDRAMPAGE          ; $8D5E
     RTN                             ; Done
 ;% LB_xxxx END   
 ;------------------------------------------------------------------------------------------------------------
@@ -2343,7 +2397,7 @@ BR_8D5E:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $8D64 xxxx - Copies UL bytes from X to Y
+; $8D64 CPY_X2Y - Copies UL bytes from X to Y
 ; Called from: 
 ; Arguments: X,Y,UL
 ; Outputs: 
@@ -2364,42 +2418,46 @@ CPY_X2Y:
 ;------------------------------------------------------------------------------------------------------------
 ; $8D6B xxxx 
 ; Called from: 
-; Arguments: 
+; Arguments: Y
 ; Outputs: 
-; RegMod: 
+; RegMod: Y
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_xxxx START
 JMP_8D6B:
     PSH  A                          ; 
     PSH  X                          ; 
-    PSH  U                          ; 
+    PSH  U                          ; Save registers
     LDX  Y                          ; 
     DEC  XH                         ; 
     DEC  XL                         ; 
-    SJP  (Y2_VIDRAM)                ; $8E5F - Sets Yreg to point to Video RAM
-    LDA  YL                         ; 
-    SEC                             ; 
-    SBI  A,$50                      ; 
+    SJP  (Y2_VIDRAM)                ; $8E5F - Sets Yreg to point to Video RAM #$7000
+
+    LDA  YL                         ; Subract $50 from Y == $6FB0 (graphics RAM)
+    SEC                             ; Set Carry Flag
+    SBI  A,$50                      ; A = A - N
     STA  YL                         ; 
     LDA  YH                         ; 
-    SBI  A,$00                      ; 
+    SBI  A,$00                      ; A = A - N
     STA  YH                         ; 
+
     CPI  XH,$19                     ; 
-    BCS  BR_8DA3                    ; $8DA3
+    BCS  BR_8DA3                    ; XH >= $19
     CPI  XL,$50                     ; 
-    BCS  BR_8DA3                    ; $8DA3
+    BCS  BR_8DA3                    ; XL >= $40
+
     LDA  XH                         ; 
     STA  UL                         ; 
-    LDA  #(VIDEORAM + $07D1)        ; 
+    LDA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     CPI  A,$28                      ; 
-    BZR  BR_8D95                    ; $8D95
+    BZR  BR_8D95                    ; A <> $28
     INC  UL                         ; 
 
 BR_8D95:
-    ADR  Y                          ; 
-    LOP  UL,BR_8D95                 ; $8D95
+    ADR  Y                          ; Y = Y + A + Carry
+    LOP  UL,BR_8D95                 ; UL = UL - 1, loop back 'e' if Borrow Flag not set
+
     LDA  XL                         ; 
-    ADR  Y                          ; 
+    ADR  Y                          ; Y = Y + A + Carry
 
 BR_89DC:
     POP  U                          ; 
@@ -2435,7 +2493,7 @@ BR_8DAC:
     INC  UH                         ; 
     LOP  UL,BR_8DAC                 ; UL = UL - 1, loop back 'e' if Borrow Flag not set
     LDI  A,$50                      ; 
-    STA  #(VIDEORAM + $07D1)        ; U = $5000 
+    STA  #(VIDEORAM + $07D1)        ; $77D1 - 40/80 col mode. $50==80col, $19==40col
     RTN                             ; 
 ;% LB_CRTC_INIT END
 ;------------------------------------------------------------------------------------------------------------
@@ -2494,21 +2552,21 @@ BR_8DFA:
     JMP  JMP_92D6                   ; Exit where output error $1B from UH
 
 
-BR_8E03:                            ; ROM A03/4 Init
+BR_8E03:                            ; ROM A03/4 Init path
     LDI  A,$00                      ;
     STA  (KATAFLAGS)                ; Turn off Katakana mode?
     STA  #($D400)                   ; Some HW register on IWS board?
     STA  #(VIDEORAM + $07F4)        ; $77F4
-    SJP  (JMP_8D41)                 ; Clears video RAM and some set up
+    SJP  (CLR_VID_RAM)              ; Clears video RAM and some set up
 
     LDI  A,$0F                      ;
     SJP  (COLOR_FILL)               ; $906A Fills screen with color $0F
 
     LDI  A,$00                      ;
-    SJP  (JMP_911A)                 ; Clears some unknown RAM at #$3000
+    SJP  (CLR_GRPH_RAM)             ; Clears some unknown RAM at #$3000
 
     LDI  A,$55                      ; 
-    STA  ($79D5)                    ; This is an unkown bypass, perhaps used as IWS active?
+    STA  (KYREPEAT)                 ; $79D5 Key repeat flag
     LDI  A,$01                      ; 
     STA  #(VIDEORAM + $07D9)        ; 
     LDI  XH,HB(CONFIG_TBL + $12)    ; $8EA1
@@ -2584,7 +2642,7 @@ BR_8E78:
     LDI  UL,$FF                     ; U == $07FF
 
 BR_8E7C:
-    SJP  (BR_8D5E)                  ; $8D5E
+    SJP  (CLR_VIDRAMPAGE)                  ; $8D5E
     DEC  UH                         ; 
     BCS  BR_8E7C                    ; $8E7C
     POP  Y                          ;
@@ -2607,7 +2665,7 @@ VID2CLR:
     LDA  YH                         ; A = $70
     AEX                             ; A = $07, High nibble & low nibble swapped
     DEC  A                          ; A = $06
-    AEX                             ; A = $60
+    AEX                             ; A = $60, Accumulator High nibble & low nibble swapped
     STA  YH                         ; Y = $6000, Color RAM
     RTN                             ; Done
 ;% LB_VID2CLR END
@@ -2682,9 +2740,9 @@ VCURSOR:
 ;% LB_VPCURSOR START
 VPCURSOR: ; 
     LDI  A,$10                      ; 
-    STA  #(CRTCTRL)                 ; #$7800
+    STA  #(CRTCTRL)                 ; #$7800 Light Pen H(V) register
     LDA  #(CRTCTRL + $01)           ; #$7801
-    STA  #(VIDEORAM + $07F6)        ; #$77F6
+    STA  #(VIDEORAM + $07F6)        ; #$77F6 Light pen vertical cursor position?
     DEC  A                          ; 
     JMP  BCMD_LEN + $0D             ; $D9E4
 ;% LB_VPCURSOR END
@@ -2723,7 +2781,7 @@ HPCURSOR:
     SBC  (Y)                        ; A = A - (Y). Subtract with Carry  (ME0)    
     STA  #(CRTCTRL)                 ; #$7800
     LDA  #(CRTCTRL + $01)           ; #$7801
-    STA  #(VIDEORAM + $07F5)        ; #$77F5 Light pen horizontal cursor position register?
+    STA  #(VIDEORAM + $07F5)        ; #$77F5 Light pen horizontal cursor position
     DEC  A                          ;
     JMP  BCMD_LEN + $0D             ; $D9E4
 ;% LB_HPCURSOR END
@@ -2734,7 +2792,7 @@ HPCURSOR:
 ;------------------------------------------------------------------------------------------------------------
 ; $8F16 LIST - 
 ; USAGE: 
-; Called from 
+; Called from: 
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
@@ -2886,9 +2944,9 @@ BR_8FBF:
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
 BR_8FD7:
-    LDA  #(VIDEORAM + $07D2)        ; 
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     INC  A                          ; 
-    STA  #(VIDEORAM + $07D2)        ; 
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     VEJ  (CC) \ ABYTL(SRCH_ADD_H)   ; $78A6 (CC) Loads X-Reg with address from memory
     INC  X                          ; 
     INC  X                          ; 
@@ -2910,10 +2968,10 @@ BR_8FEF:
     BZR  BR_900E                    ; $900E
     LDI  A,$00                      ; 
     STA  #(VIDEORAM + $07D9)        ; 
-    LDA  #(VIDEORAM + $07D2)        ; 
+    LDA  #(VIDEORAM + $07D2)        ; $77D2 - text row
     DEC  A                          ; 
-    STA  #(VIDEORAM + $07D2)        ;
-
+    STA  #(VIDEORAM + $07D2)        ; $77D2 - text row
+ 
 BR_900E:
     BCH  BR_8F7C                    ; $8F7C
 
@@ -2933,17 +2991,19 @@ BR_9010:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $9023 BACKGR - Changes background color?
+; $9023 BACKGR - Changes background color
+; Usage: BACKGR BG color,Chr color 
 ; Called from 
-; Arguments: 
+; Arguments: Color parameters: 0=Black 1=Blue 2=Green 3=Healing blue 4-Red 5=Violet 6=Yellow 7:white
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_BACKGR START
 BACKGR:
-    VEJ  (DE) \ ABRF(BR_9081)       ; (DE) Calculate formula Y-Reg points to, save result in AR-X. Branch on error
-    VEJ  (D0) \ 
-         ABYT($10) \ ABRF(BR_9081)  ; (D0) Convert AR-X to Integer save to U-Reg. D1 range check, if exceeded branch
+    VEJ  (DE) \ ABRF(BR_9081)       ; (DE) Calculate formula Y-Reg points to, save result in AR-X. 
+                                    ; Branch on error
+    VEJ  (D0) \                     ; First argument
+         ABYT($10) \ ABRF(BR_9081)  ; (D0) Convert AR-X to Int save to U-Reg. D1 range check (25), if exceeded branch
     CPI  A,$10                      ;
     BCR  BR_902F                    ; If A < $10
     LDI  UH,$13                     ; 
@@ -2951,11 +3011,12 @@ BACKGR:
 
 BR_902F:
     LDA  UL                         ; U result of VEJ(D0) above
-    AEX                             ; A = A - (Y). Subtract with Carry  (ME0)
+    AEX                             ; Accumulator High nibble & low nibble swapped
     STA  #(VIDEORAM + $7DD)         ; $77DD
     VEJ  (C0)                       ; (C0) Load next character / token to U-Reg
     CPI  UL,$0D                     ; 
-    BZR  BR_9045                    ; A <> $0D
+    BZR  BR_9045                    ; A <> $0D then we check for second argument
+
     LDA  #(VIDEORAM + $7DD)         ; $77DD
     CPI  A,$0A                      ; Not sure why the CPI ORI combo accomplish
     ORI  A,$0F                      ; 
@@ -2974,8 +3035,8 @@ BR_9045:
     VEJ  (E0)                       ; (E0) Returns error message if UH is not 00
 
 BR_9055:
-    STA  #(VIDEORAM + $07DE)        ; $77DE
-    ORA  #(VIDEORAM + $07DD)        ; $77DD
+    STA  #(VIDEORAM + $07DE)        ; $77DE Character color
+    ORA  #(VIDEORAM + $07DD)        ; $77DD Background color
     STA  UL                         ; 
     STA  #(VIDEORAM + $07DC)        ; $77DC
     BCH  BR_9065                    ; $9065
@@ -3094,7 +3155,7 @@ BR_90A9:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $90AA SLEEP - Turns off computers without initializing the printer when turning it back on.
+; $90AA SLEEP - Turns off computer without initializing the printer when turning it back on.
 ; Called from: 
 ; Arguments: YH
 ; Outputs: 
@@ -3131,26 +3192,26 @@ BR_90B3:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $90DE xxxx - If keyboard bypass set repeat key flag?
+; $90DE KEY_REPEAT_ON - If keyboard bypass set repeat key flag?
 ; Called from: XCHR_INPUT:$823E
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
-;% LB_xxxx START
-JMP_90DE:
+;% LB_KEY_REPEAT_ON START
+KEY_REPEAT_ON:
     PSH  A                          ; 
-    LDA  ($79D5)                    ; ***mystery bypass
+    LDA  (KYREPEAT)                 ; Key repeat flag
     CPI  A,$55                      ; Check for $55 bypass flag
-    BZR  BR_90EE                    ; A <> $55 . If not bypassed
-    POP  A                          ; If bypassed
+    BZR  BR_90EE                    ; A <> $55 . If not, skip
+    POP  A                          ; If repeat turned on
     ORI  (CURS_CTRL),$40            ; $7B0E - Cursor Control Parameter, sets key repeat flag
     RTN                             ;
 
 BR_90EE:
     POP  A                          ; 
     RTN                             ; Done
-;% LB_xxxx END
+;% LB_KEY_REPEAT_ON END
 ;------------------------------------------------------------------------------------------------------------
 
 
@@ -3165,18 +3226,18 @@ BR_90EE:
 ;% LB_REPKEY START
 REPKEY:
     VEJ  (C2) \ 
-        AWRD($F19C) \ ABRF(BR_90FB) ; Checks for 'ON' token. If found, a branch. BCMD_LOG ($F165+?) \ $90FB
+        AWRD($F19C) \ ABRF(BR_90FB) ; Checks for 'ON' token. If not found, branch. BCMD_LOG ($F165+?) \ $90FB
     LDI  A,$55                      ; 
 
 BR_90F7:
-    STA  ($79D5)                    ; ***mystery bypass
+    STA  (KYREPEAT)                 ; $79D5 Key repeat flag
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
 BR_90FB:
     DEC  Y                          ;
     DEC  Y                          ;
     VEJ  (C2) \ 
-        AWRD($F19E) \ ABRF(BR_9105) ; Checks for 'OFF" token. If found, a branch. DIVISION ($F084) \ $9105
+        AWRD($F19E) \ ABRF(BR_9105) ; Checks for 'OFF" token. If not found branch. DIVISION ($F084) \ $9105
     LDI  A,$00                      ;
     BCH  BR_90F7                    ; $90F7
 
@@ -3189,7 +3250,8 @@ BR_9105:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; GCLS - Clears graphics RAM
+; GCLS - Display custom graphics character on whole screen. You can define your own characters from 
+;        address &5000. A character is represented by a dot matrix of 10x8 dots.
 ; Usage: GCLS Num.Exp
 ; Called from: 
 ; Arguments: Num.Exp (graphics layer)
@@ -3207,11 +3269,11 @@ GCLS:
 BR_9110:
     VEJ  (DE) \ ABRF(BR_914B)       ; (DE) Calculates formula pointed to by Y-Reg, passes the result to AR-X. 
     VEJ  (D0) \ 
-        ABYT($10) \ ABRF(BR_914B)   ; (D0) Convert AR-X to Integer & load in U-Reg. Area check by D1, if exceeded branch
+        ABYT($10) \ ABRF(BR_914B)   ; (D0) Convert AR-X to Int & load in U-Reg. Range check by D1 (25), if exceeded branch
     LDA  UL                         ;
 
 BR_9116:
-    SJP  (JMP_911A)                 ; $911A
+    SJP  (CLR_GRPH_RAM)             ; $911A
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 ;% LB_GCLS END
 ;------------------------------------------------------------------------------------------------------------
@@ -3219,16 +3281,16 @@ BR_9116:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $911A xxxx
+; $911A CLR_GRPH_RAM - Clears Graphics RAM
 ; Called from: 
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
-;% LB_xxxx START
-JMP_911A:
+;% LB_CLR_GRPH_RAM START
+CLR_GRPH_RAM:
     LDI  A,$55                      ; 
-    STA  #($3000)                   ; ***IWS ME1???
+    STA  #($3000)                   ; *** Check for graphics RAM
     CPA  #($3000)                   ; ***
     BZR  BR_912E                    ; If A <> $55 then #($3000) does not exist. Option?
     LDI  UH,$07                     ; Next 4 lines don't seem to do anything
@@ -3259,7 +3321,7 @@ BR_9149:
 
 BR_914B:
     VEJ  (E0)                       ; (E0) Returns error message if UH is not 00
-;% LB_xxxx END
+;% LB_CLR_GRPH_RAM END
 ;------------------------------------------------------------------------------------------------------------
 
 
@@ -3280,17 +3342,31 @@ DEC:
 
 
 ;------------------------------------------------------------------------------------------------------------
-; $914F GVCURSOR - 
-; Called from 
+; $914F GVCURSOR, GVPRINT, COLORV, EDIT, REPROG, TESTV, ***DOES NOTHING!
+; GVPRINT prints your defined characters at a specific position on the screen.
+; GVPRINT &6A00,4,1 From address &6A00, 4 characters are written that were defined at &5010
+; Called from: 
 ; Arguments: 
 ; Outputs: 
 ; RegMod: 
 ;------------------------------------------------------------------------------------------------------------
 ;% LB_GVCURSOR START
 GVCURSOR:
-    VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
+    VEJ  (E2)                       ; (E2) - Return to BASIC interpreter: Y-Reg points to command or line end
+;% LB_GVCURSOR END
+;------------------------------------------------------------------------------------------------------------
 
-JMP_9150:
+
+
+;------------------------------------------------------------------------------------------------------------
+; $9150 KEYRAM - 
+; Called from: XCHR_INPUT:$823B
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;------------------------------------------------------------------------------------------------------------
+;% LB_KEYRAM START
+KEYRAM:
     LDA  ($79D6)                    ; *** unused section of PC-1500 used as flag for?
     CPI  A,$55                      ; *** another mystery bypass
     BZR  BR_9159                    ; A <> $55
@@ -3298,6 +3374,7 @@ JMP_9150:
 
 BR_9159:
     LDI  A,$BE                      ; POKES 'SJP $E267' into CE-158 registers to use as jump vector in ME0
+                                    ; $E267 - Entering a Character Using the Keyboard 
     STA  (OUTSTAT_REG)              ; $7851 CE-158 OUTSTAT value (handshaking)
     LDI  A,$E2                      ; $E267 in WAIT4KB ($E243)
     STA  (CONSOLE_REG)              ; $7851 CE-158 OUTSTAT value (handshaking)
@@ -3309,7 +3386,7 @@ BR_9168:
     STA  (CE158_UNDEF1)             ; $7853
     LDI  A,$9A                      ;
     STA  (CE158_UNDEF2)             ; $7854
-    SJP  (OUTSTAT_REG)              ; 
+    SJP  (OUTSTAT_REG)              ; Calss the code just poked in
     RTN                             ; Done
 
 BR_9176:
@@ -3320,13 +3397,24 @@ BR_9176:
     LDA  (SETDEV_REG)               ; $7857
     STA  (CONSOLE2)                 ; $7852
     BCH  BR_9168                    ; $9168
+;% LB_KEYRAM END
+;------------------------------------------------------------------------------------------------------------
 
 
+
+;------------------------------------------------------------------------------------------------------------
+; $9189 xxxx - Scroll screen?
+; Called from 
+; Arguments: 
+; Outputs: 
+; RegMod: 
+;------------------------------------------------------------------------------------------------------------
+;% LB_xxxx START
 JMP_9189:
-    LDI  XH,HB(VIDEORAM+$77F)       ; $77 IWS Video RAM area
-    LDI  XL,LB(VIDEORAM+$77F)       ; $7F 
-    LDI  YH,HB(VIDEORAM+$7CF)       ; $77 IWS Video RAM area
-    LDI  YL,LB(VIDEORAM+$7CF)       ; $CF
+    LDI  XH,HB(VIDEORAM + $77F)     ; $777F IWS Video RAM area
+    LDI  XL,LB(VIDEORAM + $77F)     ; 
+    LDI  YH,HB(VIDEORAM + $7CF)     ; $77CF IWS Video RAM area
+    LDI  YL,LB(VIDEORAM + $7CF)     ; 
     LDI  UH,$07                     ; Loop counter?
     LDI  UL,$80                     ; U == $0780
 
@@ -3344,7 +3432,7 @@ BR_9195:
 
 BR_91A5:
     BCH  BR_9195                    ; $9195
-;% LB_GVCURSOR END
+;% LB_xxxx END
 ;------------------------------------------------------------------------------------------------------------
 
 
@@ -3359,26 +3447,26 @@ BR_91A5:
 ;% LB_PRINT START
 PRINT:
     VEJ  (C2) \ 
-        ACHR($23) \ ABRF(BR_91B1)   ; Checks for '#' $23 char. If found, a branch.
+        ACHR($23) \ ABRF(BR_91B1)   ; Checks for '#' $23 char. If not found branch.
     VEJ  (C2) \ 
-        ACHR($2D) \ ABRF(BR_91BB)   ; Checks for '-' $2D char. If found, a branch.
+        ACHR($2D) \ ABRF(BR_91BB)   ; Checks for '-' $2D char. If not found branch.
     VEJ  (C6)                       ; (C6) Correct program pointer
     JMP  BCMD_PRINT + $03           ; $E4EE 
 
 BR_91B1:
     VEJ  (C6)                       ; (C6) Correct program pointer
     VEJ  (D8)                       ; (D8) Checks calculator mode
-    BZR  BR_91B8                    ; $91B8
+    BZR  BR_91B8                    ; Z <> $00 so program is not running
     JMP  BCMD_PRINT                 ; $E4EB
 
 BR_91B8:
-    JMP  JMP_8A8B                   ; $8A8B
+    JMP  JMP_8A8B                   ; Something to do with PRINT USING?
 
 BR_91BB:
     VEJ  (C6)                       ; (C6) Correct program pointer
     VEJ  (DE) \ ABRF(BR_91D2)       ; (DE) Calculates formula pointed to by Y-Reg, passes the result to AR-X. 
     VEJ  (D0) \ 
-        ABYT($80) \ ABRF(BR_91D2)   ; (D0) Convert AR-X to Integer & load in U-Reg. Area check by D1, if exceeded branch
+        ABYT($80) \ ABRF(BR_91D2)   ; (D0) Convert AR-X to Integer & load in U-Reg. Range check by D1, if exceeded branch
     VEJ  (F4) \ AWRD(BR_8803)       ; (F4) Transfer 16-bit value from X-Reg to memory page 78XX
     CPI  UH,$44                     ; 
     BZR  BR_91CF                    ; $91CF
@@ -3409,20 +3497,22 @@ MODE:
     ANI  #(VIDEORAM + $07E0),$00    ; $77E0
 
 BR_91D8:
-     VEJ  (C2) \ 
+    VEJ  (C2) \ 
         ACHR($4D) \ ABRF(BR_9219)   ; Checks for $4D 'M' char. If found, a branch.
-     SJP  (BR_91EF)                 ; $91EF
-     LDA  (Y)                       ; 
-     CPI  A,$2C                     ; 
-     BZR  BR_91E6                   ; A <> $2C
-     INC  Y                         ; 
-     BCH  BR_91D8                   ; $91D8
+    SJP  (BR_91EF)                  ; $91EF
+    LDA  (Y)                        ; 
+    CPI  A,$2C                      ; 
+    BZR  BR_91E6                    ; A <> $2C
+    INC  Y                          ; 
+    BCH  BR_91D8                    ; $91D8
 
 BR_91E6:
     LDA  #(VIDEORAM + $07E0)        ; 
     STA  #($D800)                   ; ***IWS??
     VEJ  (E2)                       ; (E2) - BASIC interpreter: Y-Reg points to command or line end
 
+
+;  Embedded subroutine START
 BR_91EF:
     VEJ  (DE) \ ABRF(BR_9218)       ; (DE) Calculates formula pointed to by Y-Reg, passes the result to AR-X., if error branch
     VEJ  (D0) \ 
@@ -3457,6 +3547,8 @@ BR_920C:
 
 BR_9218:
     VEJ  (E0)                       ; (E0) Returns error message if UH is not 00
+; Embedded subroutine END
+
 
 BR_9219:
     DEC  Y                          ; 
@@ -3534,9 +3626,9 @@ LOAD:
 BR_9254:
     VEJ  (F4) \ AWRD($B802)         ; (F4) Transfer 16-bit value from X-Reg to memory page 78XX ***CMT_PNAME $B800 CMT Periph name
     CPI  UH,$43                     ; 
-    BZR  BR_9262                    ; UH <> $43
+    BZR  BR_9262                    ; UH <> $43 'C'
     CPI  UL,$4D                     ; 
-    BZR  BR_9262                    ; UL <> $4D
+    BZR  BR_9262                    ; UL <> $4D 'M'
     JMP  CLOAD_150                  ; $B8F9 
 
 BR_9262:
@@ -3545,9 +3637,9 @@ BR_9262:
 BR_9264:
     VEJ  (F4) \ AWRD($A805)         ; (F4) Transfer 16-bit value from X-Reg to memory page 78XX *** PRINT_150 $A781
     CPI  UH,$4C                     ;
-    BZR  BR_9272                    ; UH <> $4C
+    BZR  BR_9272                    ; UH <> $4C L'
     CPI  UL,$32                     ;
-    BZR  BR_9272                    ; UL <> $32
+    BZR  BR_9272                    ; UL <> $32 '2'
     JMP  GRAPH + $E8                ; $ADBB (CE150)
 
 BR_9272:
@@ -3839,7 +3931,7 @@ BR_934F:
     PSH  A                          ; 
     LDA  #(VIDEORAM + $07F0)        ; $77F0
     CPI  A,$55                      ; 
-    BZR  BR_9368                    ; A <> $55 'U'
+    BZR  BR_9368                    ; A <> $55
     LDA  #(VIDEORAM + $07F1)        ; 
     STA  XH                         ; 
     LDA  #(VIDEORAM + $07F2)        ; 
