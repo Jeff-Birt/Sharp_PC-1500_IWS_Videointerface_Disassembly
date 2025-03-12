@@ -1,8 +1,10 @@
 Unknown ME0 addresses:
+(DISP_BUFF + $4E)         ; $764E
+(DISP_BUFF + $4F)         ; $764F
 (STRING_VARS + $FE) $774E ; Y cursor position
 (STRING_VARS + $FF) $774F ; X cursor position
 ($79D5)                   ; Key repeat flag
-($79D6)                   ; unknown flag
+($79D6)                   ; KB bypass?
 
 Unknown ME1 addresses:
 #($3000)                  ; maybe mirror of #($6000) graphics RAM??
@@ -12,24 +14,24 @@ Unknown ME1 addresses:
 #($D800)                  ; For Module box?
 #(VIDEORAM + $07D1) $77D1 ; 40/80 col mode. $50==80col, $19=40col
 #(VIDEORAM + $07D2) $77D2 ; Current text row??
-#(VIDEORAM + $07D3) $77D3 
-#(VIDEORAM + $07D4) $77D4
+#(VIDEORAM + $07D3) $77D3 ; set to $00 after CLS, text row??
+#(VIDEORAM + $07D4) $77D4 ; used as temp token storage in BASIC line processing?
 #(VIDEORAM + $07D6) $77D5
 #(VIDEORAM + $07D6) $77D6
 #(VIDEORAM + $07D7) $77D7
 #(VIDEORAM + $07D8) $77D8
-#(VIDEORAM + $07D9) $77D9
+#(VIDEORAM + $07D9) $77D9 ; BASIC Program resident?
 #(VIDEORAM + $07DA) $77DA ; Init $80 - Cursor Start Raster?
 #(VIDEORAM + $07DB) $77DB ; Init $07 - Cursor End Raster?
-#(VIDEORAM + $07DC) $77DC ; ??Only used once to store byte??
+#(VIDEORAM + $07DC) $77DC ; combined FG | BG colors?
 #(VIDEORAM + $07DD) $77DD ; Background color
 #(VIDEORAM + $07DE) $77DE ; Character color
 #(VIDEORAM + $07DF) $77DF ; 
 #(VIDEORAM + $07E0) $77E0 ; Has to do with module box?
 #(VIDEORAM + $07E2) $77E2 ; External KB flag
-#(VIDEORAM + $07F0) $77F0 ; Only used once, value loaded to A
-#0VIDEORAM + $07F1) $77F1 ; Only used once, value loaded to A
-#0VIDEORAM + $07F2) $77F2 ; Only used once, value loaded to A
+#(VIDEORAM + $07F0) $77F0 ; Unknown flag
+#(VIDEORAM + $07F1) $77F1 ; Unknown jump vector HB
+#(VIDEORAM + $07F2) $77F2 ; Unknown jump vector LB
 #(VIDEORAM + $07F3) $77F3 ; 
 #(VIDEORAM + $07F4) $77F4 ; Some sort of video mode flags
 #(VIDEORAM + $07F5) $77F5 ; Light pen horizontal cursor position?
